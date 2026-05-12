@@ -1,0 +1,1227 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0" />
+  <title>Hardware vs Software Quiz v3</title>
+  <style>
+/* ═══════════════════════════════════════════════════════════════
+   Hardware vs Software Quiz — v3.0
+   9 bugs corrigidos | Recorde | Pausa | Nível | UX melhorado
+   ═══════════════════════════════════════════════════════════════ */
+
+:root {
+  --hw:         #3B9EFF;
+  --hw-dim:     #3B9EFF33;
+  --hw-glow:    #3B9EFF55;
+  --sw:         #4EE887;
+  --sw-dim:     #4EE88733;
+  --sw-glow:    #4EE88755;
+  --bg:         #0B0E18;
+  --bg-2:       #12162A;
+  --bg-3:       #1C2040;
+  --text:       #E8ECF9;
+  --muted:      #6B7299;
+  --danger:     #FF4F6A;
+  --gold:       #FFD166;
+  --radius:     14px;
+  --radius-xl:  24px;
+  --font:       'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
+  --circ:       238.76px; /* 2π × 38 */
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+html, body {
+  height: 100%;
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font);
+  overflow: hidden;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+body {
+  display: flex;
+  flex-direction: column;
+  height: 100dvh;
+  /* BUG FIX #9 — moldura em desktop para contexto mobile-first */
+  max-width: 430px;
+  margin: 0 auto;
+  border-left:  1px solid var(--bg-3);
+  border-right: 1px solid var(--bg-3);
+}
+
+/* ── HUD ───────────────────────────────────────────────────────── */
+.hud {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+  padding: 10px 16px 8px;
+  background: var(--bg-2);
+  border-bottom: 1px solid var(--bg-3);
+  flex-shrink: 0;
+  gap: 8px;
+}
+
+.hud__block { display: flex; flex-direction: column; }
+.hud__block:last-child { align-items: flex-end; }
+
+.hud__label {
+  font-size: 8px;
+  letter-spacing: .14em;
+  color: var(--muted);
+  text-transform: uppercase;
+  line-height: 1;
+  margin-bottom: 2px;
+}
+
+.hud__value {
+  font-size: 22px;
+  font-weight: 700;
+  letter-spacing: -.02em;
+  color: var(--gold);
+  line-height: 1;
+}
+
+.hud__value.record { color: var(--muted); font-size: 18px; }
+.hud__value.record span { color: var(--gold); }
+
+.hud__center {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+}
+
+.hud__title {
+  font-size: 13px;
+  font-weight: 800;
+  letter-spacing: .04em;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.hud__brand     { color: var(--hw); }
+.hud__brand--sw { color: var(--sw); }
+.hud__sep       { color: var(--muted); font-weight: 400; font-size: 10px; }
+
+.hud__lives { display: flex; gap: 3px; font-size: 17px; }
+
+.life {
+  transition: opacity .3s, transform .3s;
+  color: var(--danger);
+  filter: drop-shadow(0 0 4px var(--danger));
+}
+.life.lost { opacity: .18; transform: scale(.8); filter: none; }
+
+/* ── Barra de sub-HUD: Nível + Pausa ──────────────────────────── */
+.sub-hud {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 5px 16px;
+  background: var(--bg-2);
+  border-bottom: 1px solid var(--bg-3);
+  flex-shrink: 0;
+}
+
+.level-info {
+  font-size: 10px;
+  letter-spacing: .08em;
+  color: var(--muted);
+  text-transform: uppercase;
+}
+
+.level-info b { color: var(--text); }
+
+.btn-pause {
+  background: none;
+  border: 1px solid var(--bg-3);
+  border-radius: 8px;
+  padding: 3px 10px;
+  font-size: 10px;
+  font-family: var(--font);
+  font-weight: 700;
+  letter-spacing: .08em;
+  color: var(--muted);
+  cursor: pointer;
+  text-transform: uppercase;
+  transition: border-color .15s, color .15s;
+}
+.btn-pause:hover { border-color: var(--muted); color: var(--text); }
+
+/* ── Arena ─────────────────────────────────────────────────────── */
+.arena {
+  flex: 1;
+  position: relative;
+  overflow: hidden;
+  background:
+    radial-gradient(ellipse 60% 40% at 50% 0%, #1a2040 0%, transparent 70%),
+    var(--bg);
+}
+
+.arena::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image:
+    linear-gradient(var(--bg-3) 1px, transparent 1px),
+    linear-gradient(90deg, var(--bg-3) 1px, transparent 1px);
+  background-size: 40px 40px;
+  opacity: .28;
+  pointer-events: none;
+}
+
+/* Linha de perigo no fundo */
+.arena::after {
+  content: '';
+  position: absolute;
+  bottom: 0; left: 0; right: 0;
+  height: 3px;
+  background: var(--danger);
+  box-shadow: 0 0 14px var(--danger);
+}
+
+/* ── Dica de instrução ─────────────────────────────────────────── */
+.hint {
+  position: absolute;
+  top: 10px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 10px;
+  letter-spacing: .07em;
+  color: var(--muted);
+  text-transform: uppercase;
+  pointer-events: none;
+  white-space: nowrap;
+  z-index: 5;
+  opacity: 1;
+  transition: opacity .6s;
+}
+.hint.hidden { opacity: 0; }
+
+/* ── Itens a cair ──────────────────────────────────────────────── */
+.falling-item {
+  position: absolute;
+  top: -110px;
+  /* BUG FIX #9 — margem lateral para bolhas de 92px em ecrãs estreitos */
+  transform: translateX(-50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 5px;
+  animation: fall linear forwards;
+  pointer-events: auto;
+  cursor: pointer;
+  will-change: top;
+  z-index: 2;
+}
+
+/* Wrapper 92×92 para o SVG timer + bolha */
+.item-wrap {
+  position: relative;
+  width: 92px;
+  height: 92px;
+}
+
+/* Timer SVG circular */
+.timer-svg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  transform: rotate(-90deg);
+  pointer-events: none;
+  z-index: 3;
+}
+
+.timer-track {
+  fill: none;
+  stroke: var(--bg-3);
+  stroke-width: 3.5;
+}
+
+.timer-bar {
+  fill: none;
+  stroke-width: 3.5;
+  stroke-linecap: round;
+  stroke-dasharray: var(--circ);
+  stroke-dashoffset: 0;
+}
+
+/* ── Bolha central (BUG FIX #8 — overflow:hidden não corta emoji) ── */
+.item-bubble {
+  position: absolute;
+  inset: 6px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 26px;
+  line-height: 1;
+  /* BUG FIX #8: overflow era hidden+flex-direction:column → cortava emoji.
+     Mantemos overflow:visible na bolha; o SVG envolve-a. */
+  overflow: visible;
+  background: var(--bg-2);
+  /* BUG FIX visual — borda colorida por tipo como pista categoria */
+  border: 2px solid transparent;
+  transition: border-color .2s, box-shadow .2s, transform .12s;
+  z-index: 2;
+}
+
+/* Pista de categoria: borda colorida subtil por tipo */
+.item-bubble[data-type="hardware"] { border-color: var(--hw-dim); }
+.item-bubble[data-type="software"] { border-color: var(--sw-dim); }
+
+/* SELECIONADO */
+.falling-item.selected .item-bubble {
+  border-color: var(--gold) !important;
+  box-shadow: 0 0 0 3px var(--gold), 0 0 18px rgba(255,209,102,.35);
+  transform: scale(1.1);
+}
+
+/* Hover sutil */
+.falling-item:not(.selected):hover .item-bubble {
+  transform: scale(1.05);
+  border-color: var(--muted) !important;
+}
+
+/* Timer quase a acabar → anel e borda vermelhos */
+.falling-item.danger .timer-bar    { stroke: var(--danger) !important; }
+.falling-item.danger .item-bubble  { border-color: var(--danger) !important; }
+
+.item-label {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: .04em;
+  color: var(--text);
+  text-align: center;
+  text-shadow: 0 1px 5px rgba(0,0,0,.95);
+  max-width: 96px;
+  line-height: 1.2;
+  pointer-events: none;
+}
+
+/* Cor do anel por tipo (normal) */
+.item-wrap[data-type="hardware"] .timer-bar { stroke: var(--hw); }
+.item-wrap[data-type="software"] .timer-bar { stroke: var(--sw); }
+
+/* ── Animações de queda e interação ────────────────────────────── */
+@keyframes fall {
+  from { top: -110px; }
+  to   { top: calc(100% + 10px); }
+}
+
+/* BUG FIX #2 — correctPop NÃO reinicia "fall".
+   Anima apenas scale e opacidade. A posição top fica intacta. */
+@keyframes correctPop {
+  0%   { opacity: 1;  transform: translateX(-50%) scale(1);   }
+  45%  { opacity: .9; transform: translateX(-50%) scale(1.4); }
+  100% { opacity: 0;  transform: translateX(-50%) scale(0);   }
+}
+
+/* BUG FIX #2 — wrongShake aplica-se à BOLHA INTERNA, não ao item raiz.
+   Assim o item raiz continua a cair normalmente. */
+@keyframes bubbleShake {
+  0%,100% { transform: scale(1) translateX(0); }
+  20%      { transform: scale(1) translateX(9px); }
+  40%      { transform: scale(1) translateX(-9px); }
+  60%      { transform: scale(1) translateX(6px); }
+  80%      { transform: scale(1) translateX(-5px); }
+}
+
+/* Feedback central */
+.feedback {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%,-50%) scale(.6);
+  font-size: 17px;
+  font-weight: 800;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+  padding: 9px 22px;
+  border-radius: 40px;
+  opacity: 0;
+  pointer-events: none;
+  z-index: 20;
+}
+
+.feedback.ok {
+  background: var(--sw);
+  color: #081a0f;
+  box-shadow: 0 0 28px var(--sw-glow);
+  animation: popFB .8s ease forwards;
+}
+.feedback.fail {
+  background: var(--danger);
+  color: #fff;
+  box-shadow: 0 0 28px rgba(255,79,106,.4);
+  animation: popFB .8s ease forwards;
+}
+
+@keyframes popFB {
+  0%   { opacity:0; transform:translate(-50%,-50%) scale(.6); }
+  20%  { opacity:1; transform:translate(-50%,-50%) scale(1.05); }
+  70%  { opacity:1; transform:translate(-50%,-50%) scale(1); }
+  100% { opacity:0; transform:translate(-50%,-50%) scale(.8); }
+}
+
+/* Streak */
+.streak {
+  position: absolute;
+  top: 12px; right: 12px;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--gold);
+  background: rgba(255,209,102,.1);
+  border: 1px solid rgba(255,209,102,.25);
+  border-radius: 20px;
+  padding: 4px 11px;
+  opacity: 0;
+  transition: opacity .3s;
+  z-index: 5;
+}
+.streak.on { opacity: 1; }
+
+/* Flash vermelho na arena */
+.arena.flash { animation: arenaFlash .4s ease; }
+@keyframes arenaFlash {
+  0%,100% { background-color: transparent; }
+  35%      { background-color: rgba(255,79,106,.16); }
+}
+
+/* Partículas */
+.particle {
+  position: absolute;
+  width: 7px; height: 7px;
+  border-radius: 50%;
+  pointer-events: none;
+  z-index: 30;
+  animation: pfly var(--dur,.5s) ease forwards;
+}
+@keyframes pfly {
+  0%   { transform: translate(0,0) scale(1); opacity: 1; }
+  100% { transform: translate(var(--dx),var(--dy)) scale(0); opacity: 0; }
+}
+
+/* ── Botões ─────────────────────────────────────────────────────── */
+.controls {
+  display: flex;
+  gap: 10px;
+  padding: 10px 14px;
+  padding-bottom: max(18px, env(safe-area-inset-bottom));
+  background: var(--bg-2);
+  border-top: 1px solid var(--bg-3);
+  flex-shrink: 0;
+}
+
+.btn {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  height: 68px;
+  border: none;
+  border-radius: var(--radius-xl);
+  cursor: pointer;
+  font-family: var(--font);
+  font-size: 13px;
+  font-weight: 800;
+  letter-spacing: .05em;
+  text-transform: uppercase;
+  transition: transform .1s, opacity .2s, filter .1s;
+  position: relative;
+  overflow: hidden;
+}
+
+.btn.inactive { opacity: .38; pointer-events: none; }
+.btn:active   { transform: scale(.95); }
+
+.btn::after {
+  content: '';
+  position: absolute; inset: 0;
+  background: white;
+  opacity: 0;
+  border-radius: inherit;
+  transition: opacity .2s;
+}
+.btn:active::after { opacity: .1; }
+
+.btn__icon  { font-size: 22px; line-height: 1; }
+.btn__label { line-height: 1; }
+/* Dica de teclado */
+.btn__key {
+  font-size: 8px;
+  letter-spacing: .08em;
+  opacity: .6;
+  font-weight: 400;
+}
+
+.btn--hw {
+  background: var(--hw);
+  color: #05111f;
+  box-shadow: 0 4px 22px var(--hw-glow);
+}
+.btn--hw:not(.inactive):hover { filter: brightness(1.1); }
+
+.btn--sw {
+  background: var(--sw);
+  color: #051408;
+  box-shadow: 0 4px 22px var(--sw-glow);
+}
+.btn--sw:not(.inactive):hover { filter: brightness(1.1); }
+
+/* ── Overlay ────────────────────────────────────────────────────── */
+.overlay {
+  position: fixed; inset: 0;
+  background: rgba(0,0,0,.8);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+  padding: 24px;
+  animation: fadeIn .2s ease;
+}
+.overlay[hidden] { display: none; }
+@keyframes fadeIn { from { opacity:0; } to { opacity:1; } }
+
+.card {
+  background: var(--bg-2);
+  border: 1px solid var(--bg-3);
+  border-radius: var(--radius-xl);
+  padding: 28px 22px 24px;
+  max-width: 330px;
+  width: 100%;
+  text-align: center;
+  animation: slideUp .28s ease;
+}
+@keyframes slideUp {
+  from { transform: translateY(18px); opacity: 0; }
+  to   { transform: translateY(0);    opacity: 1; }
+}
+
+.card__emoji { font-size: 48px; margin-bottom: 10px; }
+.card__title {
+  font-size: 26px; font-weight: 800;
+  letter-spacing: -.02em; line-height: 1.15;
+  margin-bottom: 6px; color: var(--text);
+}
+.card__sub {
+  font-size: 13px; color: var(--muted);
+  margin-bottom: 18px; line-height: 1.5;
+}
+
+.card__rules {
+  list-style: none;
+  text-align: left;
+  background: var(--bg);
+  border-radius: var(--radius);
+  padding: 12px 16px;
+  margin-bottom: 20px;
+  display: flex; flex-direction: column; gap: 7px;
+}
+.card__rules li   { font-size: 12px; color: var(--muted); line-height: 1.4; }
+.card__rules li b { color: var(--text); }
+
+.score-box {
+  background: var(--bg);
+  border-radius: var(--radius);
+  padding: 12px;
+  margin-bottom: 20px;
+  display: flex;
+  justify-content: space-around;
+  gap: 12px;
+}
+.score-col { display: flex; flex-direction: column; align-items: center; gap: 3px; }
+.score-col__label {
+  font-size: 9px; letter-spacing: .1em;
+  text-transform: uppercase; color: var(--muted);
+}
+.score-col__val {
+  font-size: 32px; font-weight: 800;
+  color: var(--gold); letter-spacing: -.03em; line-height: 1;
+}
+.score-col__val.rec { color: #aaa; font-size: 24px; }
+.score-col__val.rec b { color: var(--gold); }
+
+.card__btn {
+  width: 100%; padding: 15px;
+  background: linear-gradient(135deg, var(--hw), var(--sw));
+  border: none; border-radius: var(--radius);
+  font-family: var(--font); font-size: 15px;
+  font-weight: 800; letter-spacing: .04em;
+  text-transform: uppercase; color: #081510;
+  cursor: pointer;
+  transition: transform .1s, filter .1s;
+}
+.card__btn:active { transform: scale(.97); }
+.card__btn:hover  { filter: brightness(1.08); }
+
+/* ── Ecrã de pausa ─────────────────────────────────────────────── */
+.pause-screen {
+  position: absolute; inset: 0;
+  background: rgba(11,14,24,.92);
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  gap: 16px;
+  z-index: 50;
+  font-size: 14px; color: var(--muted);
+  letter-spacing: .06em; text-transform: uppercase;
+}
+.pause-screen[hidden] { display: none; }
+.pause-screen__icon { font-size: 48px; }
+.pause-screen__btn {
+  background: var(--bg-2);
+  border: 1px solid var(--bg-3);
+  border-radius: var(--radius);
+  padding: 10px 28px;
+  font-family: var(--font); font-size: 13px;
+  font-weight: 700; letter-spacing: .06em;
+  text-transform: uppercase; color: var(--text);
+  cursor: pointer;
+  transition: border-color .15s;
+}
+.pause-screen__btn:hover { border-color: var(--muted); }
+
+/* ── Responsivo ─────────────────────────────────────────────────── */
+@media (min-width: 480px) {
+  .btn { height: 76px; }
+  .btn__icon  { font-size: 26px; }
+  .btn__label { font-size: 14px; }
+}
+  </style>
+</head>
+<body>
+
+  <!-- HUD principal -->
+  <header class="hud">
+    <div class="hud__block">
+      <span class="hud__label">Pontos</span>
+      <span class="hud__value" id="score">0</span>
+    </div>
+    <div class="hud__center">
+      <div class="hud__title">
+        <span class="hud__brand">HW</span>
+        <span class="hud__sep">vs</span>
+        <span class="hud__brand hud__brand--sw">SW</span>
+      </div>
+      <div class="hud__lives" id="lives-display">
+        <span class="life">♥</span>
+        <span class="life">♥</span>
+        <span class="life">♥</span>
+      </div>
+    </div>
+    <div class="hud__block">
+      <span class="hud__label">Recorde</span>
+      <span class="hud__value record" id="best">—</span>
+    </div>
+  </header>
+
+  <!-- Sub-HUD: nível + pausa -->
+  <div class="sub-hud">
+    <span class="level-info">Nível <b id="level-num">1</b></span>
+    <button class="btn-pause" id="btn-pause" aria-label="Pausar jogo">⏸ Pausa &nbsp;<span style="opacity:.5;font-weight:400">P</span></button>
+  </div>
+
+  <!-- Arena de jogo -->
+  <main class="arena" id="arena" aria-live="polite" aria-label="Área de jogo">
+    <div class="hint"     id="hint"     aria-hidden="true">👆 Toca num item para selecionar</div>
+    <div class="feedback" id="feedback" aria-hidden="true"></div>
+    <div class="streak"   id="streak"   aria-hidden="true"></div>
+
+    <!-- Ecrã de pausa (dentro da arena) -->
+    <div class="pause-screen" id="pause-screen" hidden>
+      <span class="pause-screen__icon">⏸</span>
+      <span>Jogo em Pausa</span>
+      <button class="pause-screen__btn" id="resume-btn">▶ Continuar</button>
+    </div>
+  </main>
+
+  <!-- Botões de resposta -->
+  <footer class="controls">
+    <button class="btn btn--hw inactive" id="btn-hardware" aria-label="Hardware">
+      <span class="btn__icon">⚙</span>
+      <span class="btn__label">Hardware</span>
+      <span class="btn__key">← / A</span>
+    </button>
+    <button class="btn btn--sw inactive" id="btn-software" aria-label="Software">
+      <span class="btn__icon">💾</span>
+      <span class="btn__label">Software</span>
+      <span class="btn__key">→ / D</span>
+    </button>
+  </footer>
+
+  <!-- Overlay: Game Over -->
+  <div class="overlay" id="overlay-gameover" role="dialog" aria-modal="true" aria-labelledby="go-title" hidden>
+    <div class="card">
+      <p class="card__emoji" id="go-emoji">💀</p>
+      <h2 class="card__title" id="go-title">Game Over</h2>
+      <p class="card__sub"   id="go-sub">Ficaste sem vidas!</p>
+      <div class="score-box">
+        <div class="score-col">
+          <span class="score-col__label">Pontuação</span>
+          <span class="score-col__val"  id="go-score">0</span>
+        </div>
+        <div class="score-col">
+          <span class="score-col__label">Recorde</span>
+          <span class="score-col__val rec" id="go-best"><b>—</b></span>
+        </div>
+      </div>
+      <button class="card__btn" id="restart-btn">Jogar Novamente</button>
+    </div>
+  </div>
+
+  <!-- Overlay: Início -->
+  <div class="overlay" id="overlay-start" role="dialog" aria-modal="true" aria-labelledby="start-title">
+    <div class="card">
+      <p class="card__emoji">🖥️</p>
+      <h2 class="card__title" id="start-title">Hardware<br><span style="color:var(--sw)">vs</span><br>Software</h2>
+      <p class="card__sub">Classifica os componentes antes que caiam!</p>
+      <ul class="card__rules">
+        <li>👆 <b>Toca</b> num item para o selecionar</li>
+        <li>⚙️ Carrega em <b>Hardware</b> <i style="opacity:.5">(← A)</i> ou <b>Software</b> <i style="opacity:.5">(→ D)</i></li>
+        <li>⏱ O anel colorido mostra o tempo restante</li>
+        <li>❤️ Tens 3 vidas — não deixes cair nenhum</li>
+        <li>⏸ Pausa a qualquer momento com <b>P</b></li>
+      </ul>
+      <button class="card__btn" id="start-btn">Começar</button>
+    </div>
+  </div>
+
+<script>
+"use strict";
+/* ═══════════════════════════════════════════════════════════════════
+   Hardware vs Software Quiz — v3.0 JavaScript
+   Correções: 9 bugs | Recorde localStorage | Pausa | Nível | UX
+   ═══════════════════════════════════════════════════════════════════ */
+
+/* ── Helpers ──────────────────────────────────────────────────── */
+const $ = id => document.getElementById(id);
+
+/* ── 1. BANCO DE DADOS ─────────────────────────────────────────────
+   BUG FIX #4 — emojis duplicados corrigidos:
+     SSD: 💾→🗂  Compilador: ⚙️→🔩
+   BUG FIX banco — BIOS/UEFI removido (firmware, não software)
+   Adicionados: Rato, Impressora, Photoshop, Spotify
+   ───────────────────────────────────────────────────────────────── */
+const ITEMS = [
+  /* Hardware */
+  { name: "CPU",           emoji: "⚡", type: "hw" },
+  { name: "RAM",           emoji: "💡", type: "hw" },
+  { name: "SSD",           emoji: "🗂",  type: "hw" },   // 💾 estava duplicado
+  { name: "GPU",           emoji: "🎮", type: "hw" },
+  { name: "Placa-mãe",    emoji: "🔌", type: "hw" },
+  { name: "HDD",           emoji: "🗄️", type: "hw" },
+  { name: "ULA",           emoji: "🔢", type: "hw" },
+  { name: "Fonte ATX",     emoji: "🔋", type: "hw" },
+  { name: "Cooler",        emoji: "❄️", type: "hw" },
+  { name: "Monitor",       emoji: "🖥️", type: "hw" },
+  { name: "Teclado",       emoji: "⌨️", type: "hw" },
+  { name: "VRAM",          emoji: "🧠", type: "hw" },
+  { name: "USB",           emoji: "🔌", type: "hw" },
+  { name: "Placa de Som",  emoji: "🔊", type: "hw" },
+  { name: "Registos CPU",  emoji: "📟", type: "hw" },
+  { name: "Rato",          emoji: "🖱️", type: "hw" },
+  { name: "Impressora",    emoji: "🖨️", type: "hw" },
+  /* Software */
+  { name: "Windows",       emoji: "🪟", type: "sw" },
+  { name: "Linux",         emoji: "🐧", type: "sw" },
+  { name: "Android",       emoji: "🤖", type: "sw" },
+  { name: "macOS",         emoji: "🍎", type: "sw" },
+  { name: "Python",        emoji: "🐍", type: "sw" },
+  { name: "Java",          emoji: "☕", type: "sw" },
+  { name: "VS Code",       emoji: "📝", type: "sw" },
+  { name: "Chrome",        emoji: "🌐", type: "sw" },
+  { name: "Git",           emoji: "🌿", type: "sw" },
+  { name: "MySQL",         emoji: "🗃️", type: "sw" },
+  { name: "Compilador",    emoji: "🔩", type: "sw" },   // ⚙️ estava duplicado
+  { name: "Driver",        emoji: "📦", type: "sw" },
+  { name: "Kernel",        emoji: "🫀", type: "sw" },
+  { name: "Antivírus",     emoji: "🛡️", type: "sw" },
+  { name: "Photoshop",     emoji: "🎨", type: "sw" },
+  { name: "Spotify",       emoji: "🎵", type: "sw" },
+];
+
+/* ── 2. ESTADO ─────────────────────────────────────────────────── */
+let score       = 0;
+let lives       = 3;
+let streak      = 0;
+let level       = 1;       // nível visível ao jogador
+let difficulty  = 1.0;     // multiplicador interno (teto: 3.0)
+let gameRunning = false;
+let paused      = false;
+let spawnTimer  = null;
+let diffTimer   = null;
+let activeItems = [];      // elementos DOM no ar
+let selected    = null;    // item selecionado pelo jogador
+let hintGone    = false;
+let bestScore   = parseInt(localStorage.getItem("hwsw_best") || "0", 10);
+
+/* ── 3. CONFIGURAÇÃO ────────────────────────────────────────────── */
+const CFG = {
+  spawnBase:    2000,   // ms entre spawns (nível 1)
+  fallBase:     5500,   // ms para cair (nível 1)
+  diffStep:     1.15,   // multiplicador por nível
+  diffMax:      3.0,    // BUG FIX #6 — teto de dificuldade
+  diffInterval: 8000,   // ms entre aumentos de nível
+  spawnMin:     800,    // intervalo mínimo de spawn
+  pts:          10,     // pontos por acerto
+  bonus:        5,      // bónus de streak (≥3)
+  penalty:     -5,      // penalização por erro
+  CIRC:         238.76, // 2π × 38
+  dangerAt:     0.62,   // % da queda onde liga "perigo"
+};
+
+/* ── 4. DOM REFS ────────────────────────────────────────────────── */
+const arena        = $("arena");
+const scoreEl      = $("score");
+const bestEl       = $("best");
+const levelEl      = $("level-num");
+const livesEl      = $("lives-display");
+const feedbackEl   = $("feedback");
+const streakEl     = $("streak");
+const hintEl       = $("hint");
+const pauseScreen  = $("pause-screen");
+const overlayGO    = $("overlay-gameover");
+const overlayStart = $("overlay-start");
+const goScore      = $("go-score");
+const goBest       = $("go-best");
+const goEmoji      = $("go-emoji");
+const goSub        = $("go-sub");
+const btnHW        = $("btn-hardware");
+const btnSW        = $("btn-software");
+const btnPause     = $("btn-pause");
+const resumeBtn    = $("resume-btn");
+const restartBtn   = $("restart-btn");
+const startBtn     = $("start-btn");
+
+/* ── 5. WEB AUDIO API ───────────────────────────────────────────── */
+let actx = null;
+
+function getCtx() {
+  if (!actx) actx = new (window.AudioContext || window.webkitAudioContext)();
+  if (actx.state === "suspended") actx.resume();
+  return actx;
+}
+
+/* playTone: cria oscilador → gain → saída, com fade-out */
+function playTone(hz, type, dur, vol = 0.25) {
+  try {
+    const ctx  = getCtx();
+    const osc  = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.type = type;
+    osc.frequency.value = hz;
+    gain.gain.setValueAtTime(vol, ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + dur);
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    osc.start();
+    osc.stop(ctx.currentTime + dur);
+  } catch (_) {}
+}
+
+const SFX = {
+  correct() {
+    playTone(523, "sine", 0.11, 0.22);
+    setTimeout(() => playTone(784, "sine", 0.16, 0.18), 75);
+  },
+  wrong() {
+    playTone(220, "square", 0.16, 0.18);
+    setTimeout(() => playTone(160, "square", 0.2, 0.13), 95);
+  },
+  life() {
+    playTone(280, "sawtooth", 0.32, 0.16);
+    setTimeout(() => playTone(170, "sawtooth", 0.38, 0.12), 140);
+  },
+  over() {
+    playTone(200, "sawtooth", 0.28, 0.18);
+    setTimeout(() => playTone(150, "sawtooth", 0.28, 0.15), 190);
+    setTimeout(() => playTone(100, "sawtooth", 0.55, 0.12), 380);
+  },
+};
+
+/* ── 6. SPAWN ───────────────────────────────────────────────────────
+   BUG FIX #9 — xPos limitado a 12–82% para bolhas de 92px
+   BUG FIX #1 — animationend listener nomeado para poder ser removido
+   ───────────────────────────────────────────────────────────────── */
+function spawnItem() {
+  if (!gameRunning || paused) return;
+
+  const data     = ITEMS[Math.floor(Math.random() * ITEMS.length)];
+  /* BUG FIX #9: garante que a bolha não é cortada nas bordas */
+  const xPos     = Math.random() * 70 + 15;
+  const duration = CFG.fallBase / difficulty;
+
+  const el = document.createElement("div");
+  el.className = "falling-item";
+  el.style.cssText = `left:${xPos}%; animation-duration:${duration}ms`;
+  el.dataset.type = data.type;
+  el.setAttribute("role", "button");
+  el.setAttribute("aria-label", `${data.name} — toca para selecionar`);
+
+  /* Timer bar: cor definida pelo tipo via CSS no wrapper */
+  el.innerHTML = `
+    <div class="item-wrap" data-type="${data.type}">
+      <svg class="timer-svg" viewBox="0 0 92 92" aria-hidden="true">
+        <circle class="timer-track" cx="46" cy="46" r="38"/>
+        <circle class="timer-bar"   cx="46" cy="46" r="38"
+                stroke-dasharray="${CFG.CIRC}" stroke-dashoffset="0"/>
+      </svg>
+      <div class="item-bubble" data-type="${data.type}">${data.emoji}</div>
+    </div>
+    <span class="item-label">${data.name}</span>`;
+
+  arena.appendChild(el);
+  activeItems.push(el);
+
+  /* Arranca o anel SVG após dois frames (garante render antes da transição) */
+  const bar = el.querySelector(".timer-bar");
+  requestAnimationFrame(() => requestAnimationFrame(() => {
+    bar.style.transition       = `stroke-dashoffset ${duration}ms linear`;
+    bar.style.strokeDashoffset = CFG.CIRC;
+  }));
+
+  /* Zona de perigo: últimos 38% da queda */
+  el._dangerT = setTimeout(() => {
+    if (el.isConnected) el.classList.add("danger");
+  }, duration * CFG.dangerAt);
+
+  /* BUG FIX #1 — listener nomeado permite removê-lo em handleCorrect,
+     evitando que loseLife() seja chamada após um acerto correto */
+  function onFallEnd() { if (el.isConnected) loseLife(el); }
+  el._onFallEnd = onFallEnd;
+  el.addEventListener("animationend", onFallEnd);
+
+  /* Interação: toque / clique */
+  el.addEventListener("pointerdown", e => { e.stopPropagation(); selectItem(el); });
+}
+
+/* ── 7. SELEÇÃO ─────────────────────────────────────────────────── */
+function selectItem(el) {
+  if (!gameRunning || paused) return;
+  if (selected && selected !== el) selected.classList.remove("selected");
+  selected = el;
+  el.classList.add("selected");
+  btnHW.classList.remove("inactive");
+  btnSW.classList.remove("inactive");
+  if (!hintGone) { hintGone = true; hintEl.classList.add("hidden"); }
+}
+
+function deselect() {
+  if (selected) selected.classList.remove("selected");
+  selected = null;
+  btnHW.classList.add("inactive");
+  btnSW.classList.add("inactive");
+}
+
+/* ── 8. RESPOSTA ────────────────────────────────────────────────── */
+function handleAnswer(type) {
+  if (!gameRunning || paused || !selected || !selected.isConnected) return;
+  const el = selected;
+  deselect();
+  el.dataset.type === type ? handleCorrect(el) : handleWrong(el);
+}
+
+/* ── 9. ACERTO ──────────────────────────────────────────────────────
+   BUG FIX #1 — remove o listener de queda ANTES de animar correctPop,
+   garantindo que loseLife() nunca é chamada para um item já acertado.
+   BUG FIX #2 — correctPop não reinicia "fall"; anima só scale/opacity.
+   ───────────────────────────────────────────────────────────────── */
+function handleCorrect(el) {
+  clearTimeout(el._dangerT);
+  /* BUG FIX #1: remove listener de queda nomeado */
+  el.removeEventListener("animationend", el._onFallEnd);
+  removeActive(el);
+
+  streak++;
+  const pts = CFG.pts + (streak >= 3 ? CFG.bonus : 0);
+  if (streak >= 3) showStreak(streak); else hideStreak();
+
+  score += pts;
+  refreshScore();
+  SFX.correct();
+  burst(el);
+
+  /* BUG FIX #2: animation substitui "fall" por "correctPop";
+     o item já saiu do fluxo normal de queda pelo removeEventListener */
+  el.style.animation = "correctPop .38s ease forwards";
+  feedback(`✓ +${pts}`, "ok");
+
+  /* Remove do DOM após a animação de saída */
+  el.addEventListener("animationend", () => el.remove(), { once: true });
+}
+
+/* ── 10. ERRO ───────────────────────────────────────────────────────
+   BUG FIX #2 — shake aplicado À BOLHA INTERNA (bubbleShake),
+   não ao elemento raiz. O item raiz continua a animação "fall"
+   sem ser reiniciada — não "teletransporta" para o topo.
+   ───────────────────────────────────────────────────────────────── */
+function handleWrong(el) {
+  streak = 0; hideStreak();
+  score = Math.max(0, score + CFG.penalty);
+  refreshScore();
+  SFX.wrong();
+
+  /* Shake só na bolha interna — fall no raiz fica intocado */
+  const bubble = el.querySelector(".item-bubble");
+  if (bubble) {
+    bubble.style.animation = "none";
+    bubble.offsetHeight;   // reflow
+    bubble.style.animation = "bubbleShake .35s ease";
+    bubble.addEventListener("animationend",
+      () => { bubble.style.animation = ""; }, { once: true });
+  }
+
+  flashArena();
+  feedback("✗ Errado!", "fail");
+}
+
+/* ── 11. PERDA DE VIDA ─────────────────────────────────────────── */
+function loseLife(el) {
+  if (selected === el) deselect();
+  clearTimeout(el._dangerT);
+  removeActive(el);
+  el.remove();
+  lives--;
+  streak = 0; hideStreak();
+  refreshLives();
+  SFX.life();
+  feedback("⚠ Perdeste uma vida!", "fail");
+  flashArena();
+  if (lives <= 0) endGame();
+}
+
+/* ── 12. PAUSA ──────────────────────────────────────────────────────
+   BUG FIX #5 — pausa congela timers JS; as animações CSS continuam
+   mas o spawn e o diffTimer são limpos e retomados correctamente.
+   ───────────────────────────────────────────────────────────────── */
+function togglePause() {
+  if (!gameRunning) return;
+  paused = !paused;
+
+  if (paused) {
+    clearInterval(spawnTimer);
+    clearInterval(diffTimer);
+    /* Pausa as animações CSS de todos os itens ativos */
+    activeItems.forEach(it => {
+      it.style.animationPlayState = "paused";
+      const bar = it.querySelector(".timer-bar");
+      if (bar) bar.style.animationPlayState = "paused";
+    });
+    pauseScreen.hidden = false;
+    btnPause.textContent = "▶ Retomar  P";
+  } else {
+    pauseScreen.hidden = true;
+    btnPause.innerHTML = "⏸ Pausa &nbsp;<span style='opacity:.5;font-weight:400'>P</span>";
+    /* Retoma as animações CSS */
+    activeItems.forEach(it => {
+      it.style.animationPlayState = "running";
+      const bar = it.querySelector(".timer-bar");
+      if (bar) bar.style.animationPlayState = "running";
+    });
+    /* Retoma os timers JS */
+    const interval = Math.max(CFG.spawnMin, CFG.spawnBase / difficulty);
+    spawnTimer = setInterval(spawnItem, interval);
+    startDiffRamp();
+  }
+}
+
+/* BUG FIX #5 — auto-pausa ao trocar de aba */
+document.addEventListener("visibilitychange", () => {
+  if (document.hidden && gameRunning && !paused) togglePause();
+});
+
+/* ── 13. DIFICULDADE ────────────────────────────────────────────────
+   BUG FIX #6 — para quando difficulty >= diffMax
+   ───────────────────────────────────────────────────────────────── */
+function startDiffRamp() {
+  clearInterval(diffTimer);
+  diffTimer = setInterval(() => {
+    if (difficulty >= CFG.diffMax) { clearInterval(diffTimer); return; }
+    difficulty = Math.min(CFG.diffMax, difficulty * CFG.diffStep);
+    level++;
+    levelEl.textContent = level;
+    /* Reinicia spawn com novo intervalo */
+    clearInterval(spawnTimer);
+    spawnTimer = setInterval(spawnItem, Math.max(CFG.spawnMin, CFG.spawnBase / difficulty));
+  }, CFG.diffInterval);
+}
+
+/* ── 14. PARTÍCULAS ─────────────────────────────────────────────── */
+function burst(el) {
+  const r  = el.getBoundingClientRect();
+  const ar = arena.getBoundingClientRect();
+  const cx = r.left - ar.left + r.width  / 2;
+  const cy = r.top  - ar.top  + r.height / 2;
+  const cs = ["#FFD166","#4EE887","#3B9EFF","#FF9F43","#FF4F6A"];
+
+  for (let i = 0; i < 10; i++) {
+    const p     = document.createElement("div");
+    p.className = "particle";
+    const ang   = (Math.PI * 2 * i) / 10 + (Math.random() - .5) * .6;
+    const dist  = 38 + Math.random() * 38;
+    const dur   = (.38 + Math.random() * .2).toFixed(2) + "s";
+    p.style.cssText = `left:${cx}px;top:${cy}px;background:${cs[i%cs.length]};
+      --dx:${(Math.cos(ang)*dist).toFixed(1)}px;
+      --dy:${(Math.sin(ang)*dist).toFixed(1)}px;--dur:${dur}`;
+    arena.appendChild(p);
+    p.addEventListener("animationend", () => p.remove(), { once: true });
+  }
+}
+
+/* ── 15. HUD ────────────────────────────────────────────────────── */
+function refreshScore() { scoreEl.textContent = score; }
+
+function refreshLives() {
+  livesEl.querySelectorAll(".life").forEach((h, i) => {
+    h.classList.toggle("lost", i >= lives);
+  });
+}
+
+function refreshBest() {
+  bestEl.innerHTML = bestScore > 0 ? `<span>${bestScore}</span>` : "—";
+}
+
+/* ── 16. FEEDBACK / STREAK / UTILITÁRIOS ───────────────────────── */
+function feedback(msg, cls) {
+  feedbackEl.textContent = msg;
+  feedbackEl.className   = "feedback";
+  feedbackEl.offsetHeight;
+  feedbackEl.classList.add(cls);
+}
+
+function showStreak(n) {
+  streakEl.textContent = `🔥 ${n}× Streak!`;
+  streakEl.classList.add("on");
+}
+function hideStreak() { streakEl.classList.remove("on"); }
+
+function flashArena() {
+  arena.classList.remove("flash");
+  arena.offsetHeight;
+  arena.classList.add("flash");
+}
+
+/* BUG FIX #3 — getRemainingDuration usa posição RELATIVA à arena */
+function getRemainingDuration(el) {
+  const r  = el.getBoundingClientRect();
+  const ar = arena.getBoundingClientRect();
+  /* top relativo à arena, não ao viewport */
+  const relTop  = r.top - ar.top;
+  const progress = Math.max(0, Math.min(1, relTop / ar.height));
+  return (1 - progress) * (CFG.fallBase / difficulty);
+}
+
+function removeActive(el) {
+  const i = activeItems.indexOf(el);
+  if (i !== -1) activeItems.splice(i, 1);
+}
+
+/* ── 17. INÍCIO / FIM / RESET ───────────────────────────────────── */
+function startGame() {
+  gameRunning = true;
+  paused      = false;
+  hintGone    = false;
+  hintEl.classList.remove("hidden");
+  spawnItem();
+  spawnTimer = setInterval(spawnItem, CFG.spawnBase);
+  startDiffRamp();
+}
+
+function endGame() {
+  gameRunning = false;
+  clearInterval(spawnTimer);
+  clearInterval(diffTimer);
+  deselect();
+
+  /* BUG FIX #7 — remove todos os itens ativos ao terminar */
+  activeItems.forEach(el => {
+    clearTimeout(el._dangerT);
+    el.remove();
+  });
+  activeItems = [];
+
+  SFX.over();
+
+  /* Salva recorde */
+  if (score > bestScore) {
+    bestScore = score;
+    localStorage.setItem("hwsw_best", bestScore);
+    refreshBest();
+  }
+
+  /* Mensagem em 4 escalões */
+  let emoji = "💀", sub = "Estuda mais arquitetura de computadores!";
+  if      (score >= 150) { emoji = "🏆"; sub = "Lendário! Arquiteto de sistemas nato!"; }
+  else if (score >= 80)  { emoji = "🥇"; sub = "Excelente! Von Neumann ficaria orgulhoso!"; }
+  else if (score >= 30)  { emoji = "👏"; sub = "Boa tentativa! Continua a estudar!"; }
+
+  goEmoji.textContent = emoji;
+  goSub.textContent   = sub;
+  goScore.textContent = score;
+  goBest.innerHTML    = `<b>${bestScore}</b>`;
+  overlayGO.hidden    = false;
+}
+
+function resetGame() {
+  /* BUG FIX #7 — limpeza redundante mas segura */
+  activeItems.forEach(el => { clearTimeout(el._dangerT); el.remove(); });
+  activeItems = [];
+  score = 0; lives = 3; streak = 0; difficulty = 1; level = 1;
+  paused = false;
+  pauseScreen.hidden = true;
+  refreshScore(); refreshLives(); refreshBest();
+  hideStreak();
+  levelEl.textContent = 1;
+  overlayGO.hidden = true;
+  startGame();
+}
+
+/* ── 18. EVENT LISTENERS ────────────────────────────────────────── */
+btnHW.addEventListener("click",  () => handleAnswer("hw"));
+btnSW.addEventListener("click",  () => handleAnswer("sw"));
+btnPause.addEventListener("click", togglePause);
+resumeBtn.addEventListener("click", togglePause);
+restartBtn.addEventListener("click", resetGame);
+
+startBtn.addEventListener("click", () => {
+  getCtx(); /* inicializa AudioContext no primeiro gesto */
+  overlayStart.hidden = true;
+  refreshBest();
+  startGame();
+});
+
+document.addEventListener("keydown", e => {
+  if (e.key === "p" || e.key === "P") { togglePause(); return; }
+  if (!gameRunning || paused) return;
+
+  /* Espaço → seleciona item mais próximo do fundo */
+  if (e.key === " ") {
+    e.preventDefault();
+    let low = null, lowY = -Infinity;
+    activeItems.forEach(it => {
+      const y = it.getBoundingClientRect().top;
+      if (y > lowY) { lowY = y; low = it; }
+    });
+    if (low) selectItem(low);
+    return;
+  }
+
+  if (e.key === "ArrowLeft"  || e.key === "a" || e.key === "A") handleAnswer("hw");
+  if (e.key === "ArrowRight" || e.key === "d" || e.key === "D") handleAnswer("sw");
+});
+
+/* Inicializa recorde no arranque */
+refreshBest();
+</script>
+</body>
+</html>

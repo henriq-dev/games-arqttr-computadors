@@ -1,0 +1,802 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Memory Maze</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: #0a0a12;
+    color: #fff;
+    font-family: 'Segoe UI', sans-serif;
+    overflow: hidden;
+    height: 100dvh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    touch-action: none;
+  }
+
+  #screen-start, #screen-info, #screen-gameover {
+    position: absolute; inset: 0;
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    background: #0a0a12;
+    z-index: 100;
+    padding: 24px;
+    text-align: center;
+  }
+
+  .logo {
+    font-size: 2.4rem;
+    font-weight: 800;
+    letter-spacing: 2px;
+    margin-bottom: 8px;
+  }
+
+  .logo span { color: #00f2ff; }
+
+  .tagline {
+    color: #aaa;
+    font-size: 0.9rem;
+    margin-bottom: 32px;
+  }
+
+  .btn {
+    background: #00f2ff22;
+    border: 1.5px solid #00f2ff;
+    color: #00f2ff;
+    padding: 14px 40px;
+    border-radius: 8px;
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    letter-spacing: 1px;
+    transition: background 0.2s;
+    margin: 6px;
+    min-width: 200px;
+  }
+
+  .btn:hover, .btn:active { background: #00f2ff44; }
+
+  .btn-secondary {
+    border-color: #555;
+    color: #aaa;
+    background: transparent;
+  }
+
+  .zone-preview {
+    display: flex;
+    gap: 8px;
+    margin: 24px 0;
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+
+  .zone-tag {
+    padding: 6px 14px;
+    border-radius: 20px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    letter-spacing: 0.5px;
+  }
+
+  #game-wrapper {
+    position: relative;
+    width: 100%;
+    max-width: 500px;
+    height: 100dvh;
+    display: flex;
+    flex-direction: column;
+  }
+
+  #hud {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px 14px;
+    background: #0d0d1a;
+    border-bottom: 1px solid #1a1a2e;
+    z-index: 10;
+    flex-shrink: 0;
+  }
+
+  .hud-zone {
+    font-size: 0.8rem;
+    font-weight: 700;
+    letter-spacing: 1px;
+    padding: 4px 10px;
+    border-radius: 4px;
+  }
+
+  .hud-stat {
+    text-align: center;
+  }
+
+  .hud-stat-label {
+    font-size: 0.65rem;
+    color: #666;
+    text-transform: uppercase;
+  }
+
+  .hud-stat-value {
+    font-size: 1rem;
+    font-weight: 700;
+    color: #fff;
+  }
+
+  #zone-banner {
+    position: absolute;
+    top: 70px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: #0d0d1acc;
+    border: 1px solid #333;
+    border-radius: 8px;
+    padding: 10px 18px;
+    text-align: center;
+    z-index: 50;
+    max-width: 280px;
+    transition: opacity 0.5s;
+    backdrop-filter: blur(4px);
+  }
+
+  #zone-banner h3 { font-size: 0.85rem; margin-bottom: 2px; }
+  #zone-banner p { font-size: 0.7rem; color: #aaa; }
+
+  canvas {
+    flex: 1;
+    display: block;
+    width: 100%;
+    image-rendering: pixelated;
+    cursor: none;
+  }
+
+  #controls {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    grid-template-rows: repeat(2, 1fr);
+    gap: 8px;
+    padding: 10px 16px;
+    background: #0d0d1a;
+    border-top: 1px solid #1a1a2e;
+    flex-shrink: 0;
+    height: 110px;
+  }
+
+  .ctrl-btn {
+    background: #ffffff0d;
+    border: 1px solid #ffffff22;
+    border-radius: 8px;
+    color: #fff;
+    font-size: 1.3rem;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    -webkit-tap-highlight-color: transparent;
+    user-select: none;
+    transition: background 0.1s;
+    active-color: #00f2ff33;
+  }
+
+  .ctrl-btn:active { background: #00f2ff22; border-color: #00f2ff66; }
+  .ctrl-up    { grid-column: 2; grid-row: 1; }
+  .ctrl-left  { grid-column: 1; grid-row: 2; }
+  .ctrl-down  { grid-column: 2; grid-row: 2; }
+  .ctrl-right { grid-column: 3; grid-row: 2; }
+
+  .score-big {
+    font-size: 3rem;
+    font-weight: 800;
+    color: #00f2ff;
+    margin: 16px 0;
+  }
+
+  .score-details {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    width: 100%;
+    max-width: 280px;
+    margin: 16px 0 24px;
+  }
+
+  .score-card {
+    background: #ffffff0d;
+    border: 1px solid #ffffff15;
+    border-radius: 8px;
+    padding: 10px;
+    text-align: center;
+  }
+
+  .score-card-label { font-size: 0.65rem; color: #666; text-transform: uppercase; }
+  .score-card-value { font-size: 1.1rem; font-weight: 700; color: #fff; }
+
+  #info-content {
+    max-width: 340px;
+    text-align: left;
+  }
+
+  .info-zone {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    margin: 10px 0;
+    padding: 10px;
+    border-radius: 8px;
+    background: #ffffff08;
+  }
+
+  .info-dot {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    flex-shrink: 0;
+    margin-top: 3px;
+  }
+
+  .info-zone h4 { font-size: 0.85rem; margin-bottom: 2px; }
+  .info-zone p  { font-size: 0.72rem; color: #aaa; }
+</style>
+</head>
+<body>
+
+<!-- START SCREEN -->
+<div id="screen-start">
+  <div class="logo">MEMORY<span>MAZE</span></div>
+  <p class="tagline">Viaje pela hierarquia de memória do computador</p>
+  <div class="zone-preview">
+    <div class="zone-tag" style="background:#ff4d4d22;color:#ff4d4d;border:1px solid #ff4d4d66">HD/SSD</div>
+    <div class="zone-tag" style="background:#ffa50022;color:#ffa500;border:1px solid #ffa50066">RAM</div>
+    <div class="zone-tag" style="background:#4d9fff22;color:#4d9fff;border:1px solid #4d9fff66">Cache L3</div>
+    <div class="zone-tag" style="background:#00d4ff22;color:#00d4ff;border:1px solid #00d4ff66">Cache L1</div>
+    <div class="zone-tag" style="background:#00ff8822;color:#00ff88;border:1px solid #00ff8866">CPU</div>
+  </div>
+  <button class="btn" onclick="startGame()">▶ JOGAR</button>
+  <button class="btn btn-secondary" onclick="showInfo()">ℹ Como jogar</button>
+</div>
+
+<!-- INFO SCREEN -->
+<div id="screen-info" style="display:none">
+  <div id="info-content">
+    <h2 style="font-size:1.2rem;margin-bottom:16px;color:#00f2ff">Como Jogar</h2>
+    <p style="font-size:0.8rem;color:#aaa;margin-bottom:12px">Guie o pacote de dados da memória mais lenta até a CPU. Cada zona tem velocidade e obstáculos diferentes!</p>
+    <div class="info-zone">
+      <div class="info-dot" style="background:#ff4d4d"></div>
+      <div><h4 style="color:#ff4d4d">HD/SSD — Zona Lenta</h4><p>Paredes móveis (Fragmentação). Velocidade: 0.5x</p></div>
+    </div>
+    <div class="info-zone">
+      <div class="info-dot" style="background:#ffa500"></div>
+      <div><h4 style="color:#ffa500">RAM — Zona Média</h4><p>Buracos de Page Fault. Velocidade: 1.2x</p></div>
+    </div>
+    <div class="info-zone">
+      <div class="info-dot" style="background:#4d9fff"></div>
+      <div><h4 style="color:#4d9fff">Cache L3/L2 — Rápido</h4><p>Projéteis de Cache Miss. Velocidade: 2x</p></div>
+    </div>
+    <div class="info-zone">
+      <div class="info-dot" style="background:#00d4ff"></div>
+      <div><h4 style="color:#00d4ff">Cache L1 — Muito Rápido</h4><p>Obstáculos densos. Velocidade: 3x</p></div>
+    </div>
+    <div class="info-zone">
+      <div class="info-dot" style="background:#00ff88"></div>
+      <div><h4 style="color:#00ff88">CPU — Objetivo!</h4><p>Chegue aqui para vencer!</p></div>
+    </div>
+    <p style="font-size:0.75rem;color:#666;margin-top:12px">💡 Cada colisão = -5 pontos e volta ao início da zona. Colete bits ⬡ pelo caminho!</p>
+  </div>
+  <button class="btn" style="margin-top:20px" onclick="hideInfo()">← Voltar</button>
+</div>
+
+<!-- GAME OVER SCREEN -->
+<div id="screen-gameover" style="display:none">
+  <div class="logo" id="go-title">FIM!</div>
+  <p id="go-subtitle" style="color:#aaa;font-size:0.85rem;margin-bottom:8px"></p>
+  <div class="score-big" id="go-score">0</div>
+  <div class="score-details">
+    <div class="score-card">
+      <div class="score-card-label">Tempo</div>
+      <div class="score-card-value" id="go-time">0s</div>
+    </div>
+    <div class="score-card">
+      <div class="score-card-label">Colisões</div>
+      <div class="score-card-value" id="go-hits">0</div>
+    </div>
+    <div class="score-card">
+      <div class="score-card-label">Bits coletados</div>
+      <div class="score-card-value" id="go-bits">0</div>
+    </div>
+    <div class="score-card">
+      <div class="score-card-label">Zona final</div>
+      <div class="score-card-value" id="go-zone">HD</div>
+    </div>
+  </div>
+  <button class="btn" onclick="startGame()">↻ Jogar Novamente</button>
+  <button class="btn btn-secondary" onclick="showStart()">Início</button>
+</div>
+
+<!-- GAME WRAPPER -->
+<div id="game-wrapper" style="display:none">
+  <div id="hud">
+    <div>
+      <div class="hud-stat-label">Zona</div>
+      <div class="hud-zone" id="hud-zone">HD/SSD</div>
+    </div>
+    <div class="hud-stat">
+      <div class="hud-stat-label">Pontos</div>
+      <div class="hud-stat-value" id="hud-score">0</div>
+    </div>
+    <div class="hud-stat">
+      <div class="hud-stat-label">Vidas</div>
+      <div class="hud-stat-value" id="hud-lives">❤❤❤</div>
+    </div>
+    <div class="hud-stat">
+      <div class="hud-stat-label">Tempo</div>
+      <div class="hud-stat-value" id="hud-time">0s</div>
+    </div>
+  </div>
+
+  <div id="zone-banner" style="opacity:0">
+    <h3 id="banner-title"></h3>
+    <p id="banner-desc"></p>
+  </div>
+
+  <canvas id="canvas"></canvas>
+
+  <div id="controls">
+    <button class="ctrl-btn ctrl-up"    data-dir="up">▲</button>
+    <button class="ctrl-btn ctrl-left"  data-dir="left">◀</button>
+    <button class="ctrl-btn ctrl-down"  data-dir="down">▼</button>
+    <button class="ctrl-btn ctrl-right" data-dir="right">▶</button>
+  </div>
+</div>
+
+<script>
+const ZONES = [
+  { name:"HD/SSD",   color:"#ff4d4d", bg:"#1a0505", speed:1.8, latency:"10ms",  obstacle:"Fragmentação",  desc:"Mais lenta — dados espalhados" },
+  { name:"RAM",      color:"#ffa500", bg:"#1a0d00", speed:3.5, latency:"100ns", obstacle:"Page Fault",     desc:"Acesso rápido — mas pode falhar" },
+  { name:"Cache L3", color:"#4d9fff", bg:"#00091a", speed:6,   latency:"10ns",  obstacle:"Cache Miss",     desc:"Cache compartilhado — bem mais rápido" },
+  { name:"Cache L1", color:"#00d4ff", bg:"#001a1a", speed:9,   latency:"1ns",   obstacle:"Thrashing",      desc:"Mais perto da CPU — altíssima velocidade" },
+  { name:"CPU",      color:"#00ff88", bg:"#001a0a", speed:0,   latency:"<1ns",  obstacle:"",               desc:"Destino final — processamento!" }
+];
+
+const TILE = 20;
+let canvas, ctx, W, H, COLS, ROWS;
+let player, walls, bits, enemies, currentZone, score, lives, hits, totalBits, startTime, gameActive, animId;
+let keys = {};
+let bannerTimeout;
+
+function $(id){ return document.getElementById(id); }
+
+function showStart(){ $('screen-start').style.display='flex'; $('screen-gameover').style.display='none'; $('game-wrapper').style.display='none'; }
+function showInfo(){ $('screen-start').style.display='none'; $('screen-info').style.display='flex'; }
+function hideInfo(){ $('screen-info').style.display='none'; $('screen-start').style.display='flex'; }
+
+function startGame(){
+  $('screen-start').style.display='none';
+  $('screen-gameover').style.display='none';
+  $('screen-info').style.display='none';
+  $('game-wrapper').style.display='flex';
+
+  canvas = $('canvas');
+  ctx = canvas.getContext('2d');
+  resizeCanvas();
+
+  score=0; lives=3; hits=0; totalBits=0; currentZone=0; gameActive=true;
+  startTime = Date.now();
+
+  initZone(0);
+  updateHUD();
+  if(animId) cancelAnimationFrame(animId);
+  loop();
+}
+
+function resizeCanvas(){
+  const rect = canvas.getBoundingClientRect();
+  canvas.width  = Math.floor(rect.width);
+  canvas.height = Math.floor(rect.height);
+  W = canvas.width;
+  H = canvas.height;
+  COLS = Math.floor(W/TILE);
+  ROWS = Math.floor(H/TILE);
+}
+
+function initZone(zoneIdx){
+  currentZone = zoneIdx;
+  const z = ZONES[zoneIdx];
+
+  if(zoneIdx === ZONES.length-1){
+    // CPU — win!
+    setTimeout(gameWin, 400);
+    return;
+  }
+
+  player = {
+    x: TILE*1.5, y: H/2,
+    vx:0, vy:0,
+    size: TILE*0.55,
+    speed: z.speed,
+    trail:[]
+  };
+
+  walls   = [];
+  bits    = [];
+  enemies = [];
+
+  generateMaze(zoneIdx);
+  showBanner(z);
+  updateHUD();
+}
+
+function generateMaze(zoneIdx){
+  const z = ZONES[zoneIdx];
+  const cols = COLS, rows = ROWS;
+
+  // Outer walls
+  for(let c=0;c<cols;c++){
+    walls.push({x:c*TILE, y:0, w:TILE, h:TILE, moving:false});
+    walls.push({x:c*TILE, y:(rows-1)*TILE, w:TILE, h:TILE, moving:false});
+  }
+  for(let r=1;r<rows-1;r++){
+    walls.push({x:0,          y:r*TILE, w:TILE, h:TILE, moving:false});
+    walls.push({x:(cols-1)*TILE, y:r*TILE, w:TILE, h:TILE, moving:false});
+  }
+
+  // Exit portal (right side)
+  walls.push({x:(cols-1)*TILE, y:Math.floor(rows/2)*TILE, w:TILE, h:TILE*3, isExit:true, moving:false, color: ZONES[zoneIdx+1]?.color || '#00ff88'});
+
+  // Interior maze walls — random generation with guaranteed path
+  const density = [0.28, 0.22, 0.18, 0.14][zoneIdx] || 0.15;
+  for(let r=2;r<rows-2;r++){
+    for(let c=2;c<cols-2;c++){
+      if(Math.random()<density){
+        const moving = zoneIdx===0 && Math.random()<0.3;
+        walls.push({
+          x:c*TILE, y:r*TILE, w:TILE, h:TILE,
+          moving,
+          dx: moving ? (Math.random()<0.5?0.5:-0.5) : 0,
+          dy: 0,
+          origX: c*TILE, origY: r*TILE,
+          range: TILE*(1+Math.random()*2)
+        });
+      }
+    }
+  }
+
+  // Clear a guaranteed horizontal path
+  const midRow = Math.floor(rows/2);
+  walls = walls.filter(w=>{
+    if(w.isExit) return true;
+    const wr = Math.round(w.y/TILE);
+    const wc = Math.round(w.x/TILE);
+    if(wr>=midRow-1 && wr<=midRow+1 && wc>=1 && wc<cols-1) return false;
+    return true;
+  });
+
+  // Bits (collectibles)
+  for(let i=0;i<8;i++){
+    let bx,by,tries=0;
+    do{
+      bx = (2+Math.floor(Math.random()*(cols-4)))*TILE + TILE/2;
+      by = (2+Math.floor(Math.random()*(rows-4)))*TILE + TILE/2;
+      tries++;
+    } while(tries<20 && walls.some(w=>!w.isExit && rectsOverlap(bx-6,by-6,12,12,w.x,w.y,w.w,w.h)));
+    bits.push({x:bx, y:by, r:5, collected:false, pulse:Math.random()*Math.PI*2});
+  }
+
+  // Enemies (projectiles / page fault holes)
+  const eCount = [2,3,4,5][zoneIdx]||2;
+  for(let i=0;i<eCount;i++){
+    const ex = (3+Math.floor(Math.random()*(cols-6)))*TILE;
+    const ey = (2+Math.floor(Math.random()*(rows-4)))*TILE;
+    const spd = [1,1.5,2.5,3.5][zoneIdx]||1;
+    enemies.push({
+      x:ex, y:ey, r:TILE*0.38,
+      vx:(Math.random()<0.5?1:-1)*spd,
+      vy:(Math.random()<0.5?0.8:-0.8)*spd,
+      type: zoneIdx
+    });
+  }
+}
+
+function rectsOverlap(ax,ay,aw,ah,bx,by,bw,bh){
+  return ax<bx+bw && ax+aw>bx && ay<by+bh && ay+ah>by;
+}
+
+function showBanner(z){
+  const banner = $('zone-banner');
+  $('banner-title').textContent = z.name + ' — Latência: ' + z.latency;
+  $('banner-desc').textContent  = z.desc;
+  banner.style.opacity='1';
+  if(bannerTimeout) clearTimeout(bannerTimeout);
+  bannerTimeout = setTimeout(()=>{ banner.style.opacity='0'; }, 3000);
+}
+
+function updateHUD(){
+  const z = ZONES[currentZone];
+  const zoneEl = $('hud-zone');
+  zoneEl.textContent = z.name;
+  zoneEl.style.color = z.color;
+  zoneEl.style.border = '1px solid '+z.color+'66';
+  zoneEl.style.background = z.color+'15';
+  $('hud-score').textContent = score;
+  $('hud-lives').textContent = '❤'.repeat(lives);
+  $('hud-time').textContent  = Math.floor((Date.now()-startTime)/1000)+'s';
+}
+
+let lastTime=0;
+function loop(ts=0){
+  if(!gameActive) return;
+  const dt = Math.min((ts-lastTime)/16.67, 3);
+  lastTime=ts;
+  update(dt);
+  draw();
+  updateHUD();
+  animId = requestAnimationFrame(loop);
+}
+
+function update(dt){
+  if(!gameActive) return;
+  const z = ZONES[currentZone];
+  const spd = z.speed * dt;
+
+  let dx=0, dy=0;
+  if(keys['ArrowUp']    || keys['w'] || keys['W']) dy=-1;
+  if(keys['ArrowDown']  || keys['s'] || keys['S']) dy=1;
+  if(keys['ArrowLeft']  || keys['a'] || keys['A']) dx=-1;
+  if(keys['ArrowRight'] || keys['d'] || keys['D']) dx=1;
+
+  if(dx!==0 && dy!==0){ dx*=0.707; dy*=0.707; }
+
+  let nx = player.x + dx*spd;
+  let ny = player.y + dy*spd;
+  const ps = player.size;
+
+  // Wall collision
+  let hitWall=false;
+  for(const w of walls){
+    if(w.isExit) continue;
+    if(rectsOverlap(nx-ps,ny-ps,ps*2,ps*2,w.x,w.y,w.w,w.h)){
+      hitWall=true; nx=player.x; ny=player.y;
+    }
+  }
+
+  player.x=Math.max(TILE+ps, Math.min(W-TILE-ps, nx));
+  player.y=Math.max(TILE+ps, Math.min(H-TILE-ps, ny));
+
+  // Trail
+  player.trail.push({x:player.x,y:player.y});
+  if(player.trail.length>12) player.trail.shift();
+
+  // Exit check
+  for(const w of walls){
+    if(w.isExit && rectsOverlap(player.x-ps,player.y-ps,ps*2,ps*2,w.x,w.y,w.w,w.h)){
+      score += 100;
+      initZone(currentZone+1);
+      return;
+    }
+  }
+
+  // Moving walls
+  for(const w of walls){
+    if(!w.moving) continue;
+    w.x+=w.dx*dt;
+    if(Math.abs(w.x-w.origX)>w.range){ w.dx*=-1; }
+  }
+
+  // Bits
+  for(const b of bits){
+    if(b.collected) continue;
+    b.pulse+=0.08*dt;
+    const dist = Math.hypot(player.x-b.x, player.y-b.y);
+    if(dist<ps+b.r+4){ b.collected=true; score+=10; totalBits++; }
+  }
+
+  // Enemies
+  for(const e of enemies){
+    e.x+=e.vx*dt;
+    e.y+=e.vy*dt;
+    if(e.x<TILE+e.r || e.x>W-TILE-e.r) e.vx*=-1;
+    if(e.y<TILE+e.r || e.y>H-TILE-e.r) e.vy*=-1;
+
+    // Enemy-wall bounce
+    for(const w of walls){
+      if(w.isExit) continue;
+      if(rectsOverlap(e.x-e.r,e.y-e.r,e.r*2,e.r*2,w.x,w.y,w.w,w.h)){
+        e.vx*=-1; e.vy*=-1;
+        e.x+=e.vx*2; e.y+=e.vy*2;
+      }
+    }
+
+    const dist = Math.hypot(player.x-e.x, player.y-e.y);
+    if(dist<ps+e.r){
+      loseLife();
+      return;
+    }
+  }
+
+  // Score over time
+  if(Math.random()<0.01) score+=1;
+}
+
+function loseLife(){
+  lives--;
+  hits++;
+  score = Math.max(0, score-5);
+  if(lives<=0){ gameOver(false); return; }
+  // Reset player to start of zone
+  player.x=TILE*1.5; player.y=H/2;
+  player.trail=[];
+  flashRed();
+}
+
+function flashRed(){
+  canvas.style.border='2px solid #ff4d4d';
+  setTimeout(()=>canvas.style.border='none',300);
+}
+
+function draw(){
+  const z = ZONES[currentZone];
+  ctx.fillStyle = z.bg;
+  ctx.fillRect(0,0,W,H);
+
+  // Grid lines
+  ctx.strokeStyle = z.color+'10';
+  ctx.lineWidth=0.5;
+  for(let c=0;c<COLS;c++){ ctx.beginPath();ctx.moveTo(c*TILE,0);ctx.lineTo(c*TILE,H);ctx.stroke(); }
+  for(let r=0;r<ROWS;r++){ ctx.beginPath();ctx.moveTo(0,r*TILE);ctx.lineTo(W,r*TILE);ctx.stroke(); }
+
+  // Walls
+  for(const w of walls){
+    if(w.isExit){
+      // Exit portal
+      ctx.fillStyle = w.color+'33';
+      ctx.strokeStyle = w.color;
+      ctx.lineWidth=1.5;
+      ctx.beginPath();
+      ctx.roundRect(w.x,w.y,w.w,w.h,4);
+      ctx.fill(); ctx.stroke();
+      ctx.fillStyle=w.color;
+      ctx.font='bold 10px sans-serif';
+      ctx.textAlign='center';
+      ctx.fillText('EXIT',w.x+w.w/2,w.y+w.h/2+4);
+    } else {
+      ctx.fillStyle = z.color+'33';
+      ctx.strokeStyle = z.color+'66';
+      ctx.lineWidth=0.5;
+      ctx.fillRect(w.x,w.y,w.w,w.h);
+      ctx.strokeRect(w.x,w.y,w.w,w.h);
+    }
+  }
+
+  // Bits
+  for(const b of bits){
+    if(b.collected) continue;
+    const s = 1+Math.sin(b.pulse)*0.2;
+    ctx.save();
+    ctx.translate(b.x,b.y);
+    ctx.scale(s,s);
+    ctx.fillStyle=z.color;
+    ctx.shadowColor=z.color;
+    ctx.shadowBlur=8;
+    ctx.beginPath();
+    for(let i=0;i<6;i++){
+      const a=i*Math.PI/3-Math.PI/6;
+      const r=b.r*(i%2===0?1:0.6);
+      i===0?ctx.moveTo(Math.cos(a)*r,Math.sin(a)*r):ctx.lineTo(Math.cos(a)*r,Math.sin(a)*r);
+    }
+    ctx.closePath();
+    ctx.fill();
+    ctx.restore();
+  }
+
+  // Enemies
+  for(const e of enemies){
+    const ecolors=['#ff4d4d','#ff8c00','#4d9fff','#00d4ff'];
+    const ecol = ecolors[e.type]||'#fff';
+    ctx.fillStyle=ecol+'aa';
+    ctx.strokeStyle=ecol;
+    ctx.lineWidth=1;
+    ctx.shadowColor=ecol;
+    ctx.shadowBlur=10;
+    ctx.beginPath();
+    ctx.arc(e.x,e.y,e.r,0,Math.PI*2);
+    ctx.fill(); ctx.stroke();
+    ctx.shadowBlur=0;
+    // X mark
+    ctx.strokeStyle='#fff';
+    ctx.lineWidth=1.2;
+    const d=e.r*0.5;
+    ctx.beginPath();ctx.moveTo(e.x-d,e.y-d);ctx.lineTo(e.x+d,e.y+d);ctx.stroke();
+    ctx.beginPath();ctx.moveTo(e.x+d,e.y-d);ctx.lineTo(e.x-d,e.y+d);ctx.stroke();
+  }
+
+  // Player trail
+  for(let i=0;i<player.trail.length;i++){
+    const t=player.trail[i];
+    const alpha=(i/player.trail.length)*0.4;
+    ctx.fillStyle=`rgba(0,242,255,${alpha})`;
+    const ts=player.size*(i/player.trail.length)*0.6;
+    ctx.beginPath();ctx.arc(t.x,t.y,ts,0,Math.PI*2);ctx.fill();
+  }
+
+  // Player
+  ctx.shadowColor='#00f2ff';
+  ctx.shadowBlur=16;
+  ctx.fillStyle='#00f2ff';
+  ctx.beginPath();
+  ctx.arc(player.x,player.y,player.size,0,Math.PI*2);
+  ctx.fill();
+  ctx.strokeStyle='#fff';
+  ctx.lineWidth=1.5;
+  ctx.stroke();
+  ctx.shadowBlur=0;
+
+  // Player inner dot
+  ctx.fillStyle='#fff';
+  ctx.beginPath();
+  ctx.arc(player.x,player.y,player.size*0.35,0,Math.PI*2);
+  ctx.fill();
+}
+
+function gameWin(){
+  gameActive=false;
+  cancelAnimationFrame(animId);
+  const elapsed=Math.floor((Date.now()-startTime)/1000);
+  score+=Math.max(0,300-elapsed*2);
+  showGameOver(true, elapsed);
+}
+
+function gameOver(won){
+  gameActive=false;
+  cancelAnimationFrame(animId);
+  const elapsed=Math.floor((Date.now()-startTime)/1000);
+  showGameOver(false, elapsed);
+}
+
+function showGameOver(won, elapsed){
+  $('game-wrapper').style.display='none';
+  const go=$('screen-gameover');
+  go.style.display='flex';
+  $('go-title').textContent   = won?'VITÓRIA! 🎉':'GAME OVER';
+  $('go-title').style.color   = won?'#00ff88':'#ff4d4d';
+  $('go-subtitle').textContent= won?'Você chegou à CPU!':'O dado foi perdido...';
+  $('go-score').textContent   = score + ' pts';
+  $('go-time').textContent    = elapsed+'s';
+  $('go-hits').textContent    = hits;
+  $('go-bits').textContent    = totalBits;
+  $('go-zone').textContent    = ZONES[currentZone].name;
+}
+
+// Keyboard
+window.addEventListener('keydown', e=>{ keys[e.key]=true; e.preventDefault(); });
+window.addEventListener('keyup',   e=>{ keys[e.key]=false; });
+
+// Touch controls
+document.querySelectorAll('.ctrl-btn').forEach(btn=>{
+  const dir=btn.dataset.dir;
+  const map={up:'ArrowUp',down:'ArrowDown',left:'ArrowLeft',right:'ArrowRight'};
+  btn.addEventListener('pointerdown', e=>{ e.preventDefault(); keys[map[dir]]=true; });
+  btn.addEventListener('pointerup',   e=>{ keys[map[dir]]=false; });
+  btn.addEventListener('pointerleave',e=>{ keys[map[dir]]=false; });
+});
+
+// Swipe
+let touchStart={x:0,y:0};
+document.addEventListener('touchstart',e=>{ touchStart={x:e.touches[0].clientX, y:e.touches[0].clientY}; },{passive:true});
+document.addEventListener('touchend',e=>{
+  if(!gameActive) return;
+  const dx=e.changedTouches[0].clientX-touchStart.x;
+  const dy=e.changedTouches[0].clientY-touchStart.y;
+  if(Math.abs(dx)<15 && Math.abs(dy)<15) return;
+  const dir=Math.abs(dx)>Math.abs(dy)?(dx>0?'ArrowRight':'ArrowLeft'):(dy>0?'ArrowDown':'ArrowUp');
+  keys[dir]=true;
+  setTimeout(()=>keys[dir]=false,150);
+},{passive:true});
+
+window.addEventListener('resize',()=>{ if(gameActive){ resizeCanvas(); }});
+</script>
+</body>
+</html>

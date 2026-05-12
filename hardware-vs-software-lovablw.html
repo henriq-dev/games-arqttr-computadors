@@ -1,0 +1,476 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0" />
+  <title>Hardware vs Software Quiz</title>
+  <style>
+:root {
+  --hw:#3B9EFF; --hw-glow:#3B9EFF44;
+  --sw:#4EE887; --sw-glow:#4EE88744;
+  --bg:#0B0E18; --bg-2:#12162A; --bg-3:#1C2040;
+  --text:#E8ECF9; --muted:#6B7299;
+  --danger:#FF4F6A; --gold:#FFD166;
+  --radius:14px; --radius-xl:24px;
+  --font:'Segoe UI','Helvetica Neue',Arial,sans-serif;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%;background:var(--bg);color:var(--text);font-family:var(--font);overflow:hidden;user-select:none;-webkit-user-select:none}
+body{display:flex;flex-direction:column;height:100dvh}
+
+/* HUD */
+.hud{display:flex;align-items:center;justify-content:space-between;padding:14px 20px 10px;background:var(--bg-2);border-bottom:1px solid var(--bg-3);flex-shrink:0;z-index:10;gap:8px}
+.hud__label{display:block;font-size:9px;letter-spacing:.12em;color:var(--muted);text-transform:uppercase}
+.hud__value{display:block;font-size:24px;font-weight:700;letter-spacing:-.02em;color:var(--gold);line-height:1}
+.hud__hi{font-size:10px;color:var(--muted);margin-top:2px}
+.hud__title{font-size:14px;font-weight:800;letter-spacing:.04em;display:flex;align-items:center;gap:5px}
+.hud__brand{color:var(--hw)} .hud__brand--sw{color:var(--sw)} .hud__sep{color:var(--muted);font-weight:400;font-size:11px}
+.hud__right{display:flex;flex-direction:column;align-items:flex-end;gap:4px}
+.hud__lives{display:flex;gap:4px;font-size:18px}
+.life{transition:opacity .3s,transform .3s;color:var(--danger);filter:drop-shadow(0 0 4px var(--danger))}
+.life.lost{opacity:.18;transform:scale(.8);filter:none}
+.pause-btn{background:var(--bg-3);border:none;color:var(--text);width:30px;height:24px;border-radius:8px;font-size:11px;cursor:pointer;font-weight:700}
+.pause-btn:hover{background:#272d52}
+
+/* Arena */
+.arena{flex:1;position:relative;overflow:hidden;background:radial-gradient(ellipse 60% 40% at 50% 0%,#1a2040 0%,transparent 70%),var(--bg)}
+.arena::before{content:'';position:absolute;inset:0;background-image:linear-gradient(var(--bg-3) 1px,transparent 1px),linear-gradient(90deg,var(--bg-3) 1px,transparent 1px);background-size:40px 40px;opacity:.3;pointer-events:none}
+.arena::after{content:'';position:absolute;bottom:0;left:0;right:0;height:3px;background:var(--danger);box-shadow:0 0 12px var(--danger)}
+
+.falling-item{position:absolute;top:-120px;transform:translateX(-50%);display:flex;flex-direction:column;align-items:center;gap:6px;animation:fall linear forwards;will-change:transform,top;pointer-events:none}
+.falling-item.paused{animation-play-state:paused!important}
+.item-bubble{width:82px;height:82px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:32px;background:var(--bg-2);border:2px solid var(--bg-3);position:relative;overflow:hidden}
+.item-bubble[data-type="hardware"]{border-color:var(--hw);box-shadow:0 0 12px var(--hw-glow)}
+.item-bubble[data-type="software"]{border-color:var(--sw);box-shadow:0 0 12px var(--sw-glow)}
+.item-label{font-size:11px;font-weight:700;letter-spacing:.04em;color:var(--text);text-align:center;text-shadow:0 1px 4px rgba(0,0,0,.8);max-width:100px;line-height:1.2}
+
+@keyframes fall{from{top:-120px}to{top:calc(100% + 10px)}}
+
+/* Feedback */
+.feedback{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%) scale(.6);font-size:18px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;padding:10px 24px;border-radius:40px;opacity:0;pointer-events:none;z-index:20}
+.feedback.show-correct{background:var(--sw);color:#081a0f;box-shadow:0 0 30px var(--sw-glow);animation:popFeedback .8s ease forwards}
+.feedback.show-wrong{background:var(--danger);color:#fff;box-shadow:0 0 30px #FF4F6A44;animation:popFeedback .8s ease forwards}
+@keyframes popFeedback{0%{opacity:0;transform:translate(-50%,-50%) scale(.6)}20%{opacity:1;transform:translate(-50%,-50%) scale(1.05)}70%{opacity:1;transform:translate(-50%,-50%) scale(1)}100%{opacity:0;transform:translate(-50%,-50%) scale(.8)}}
+
+.streak{position:absolute;top:14px;right:14px;font-size:13px;font-weight:700;color:var(--gold);background:rgba(255,209,102,.12);border:1px solid rgba(255,209,102,.25);border-radius:20px;padding:4px 12px;opacity:0;transition:opacity .3s}
+.streak.visible{opacity:1}
+
+.level-badge{position:absolute;top:14px;left:14px;font-size:11px;font-weight:700;color:var(--text);background:rgba(59,158,255,.15);border:1px solid rgba(59,158,255,.3);border-radius:20px;padding:4px 10px}
+
+/* Controls */
+.controls{display:flex;gap:12px;padding:12px 16px;padding-bottom:max(20px,env(safe-area-inset-bottom));background:var(--bg-2);border-top:1px solid var(--bg-3);flex-shrink:0;z-index:10}
+.btn{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;height:72px;border:none;border-radius:var(--radius-xl);cursor:pointer;font-family:var(--font);font-size:14px;font-weight:800;letter-spacing:.05em;text-transform:uppercase;transition:transform .1s,box-shadow .1s,filter .1s;position:relative;overflow:hidden}
+.btn:active{transform:scale(.96)}
+.btn:disabled{opacity:.5;cursor:not-allowed}
+.btn__icon{font-size:24px;line-height:1}
+.btn__label{line-height:1}
+.btn__hint{font-size:9px;opacity:.6;font-weight:600;letter-spacing:.1em}
+.btn--hw{background:var(--hw);color:#05111f;box-shadow:0 4px 24px var(--hw-glow)}
+.btn--hw:hover:not(:disabled){box-shadow:0 6px 32px var(--hw-glow);filter:brightness(1.1)}
+.btn--sw{background:var(--sw);color:#051408;box-shadow:0 4px 24px var(--sw-glow)}
+.btn--sw:hover:not(:disabled){box-shadow:0 6px 32px var(--sw-glow);filter:brightness(1.1)}
+
+/* Overlay */
+.overlay{position:fixed;inset:0;background:rgba(0,0,0,.75);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);display:flex;align-items:center;justify-content:center;z-index:100;padding:24px;animation:fadeIn .25s ease}
+.overlay[hidden]{display:none}
+@keyframes fadeIn{from{opacity:0}to{opacity:1}}
+.overlay__card{background:var(--bg-2);border:1px solid var(--bg-3);border-radius:var(--radius-xl);padding:32px 24px 28px;max-width:340px;width:100%;text-align:center;animation:slideUp .3s ease}
+@keyframes slideUp{from{transform:translateY(20px);opacity:0}to{transform:translateY(0);opacity:1}}
+.overlay__emoji{font-size:52px;margin-bottom:12px}
+.overlay__title{font-size:28px;font-weight:800;letter-spacing:-.02em;line-height:1.15;margin-bottom:8px;color:var(--text)}
+.overlay__sub{font-size:14px;color:var(--muted);margin-bottom:20px;line-height:1.5}
+.overlay__rules{list-style:none;text-align:left;background:var(--bg);border-radius:var(--radius);padding:14px 18px;margin-bottom:24px;display:flex;flex-direction:column;gap:8px}
+.overlay__rules li{font-size:13px;color:var(--muted);line-height:1.4}
+.overlay__rules li b{color:var(--text)}
+.overlay__score-wrap{background:var(--bg);border-radius:var(--radius);padding:14px;margin-bottom:24px;display:flex;justify-content:space-around;gap:16px}
+.overlay__score-item{flex:1}
+.overlay__score-label{display:block;font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin-bottom:4px}
+.overlay__score-value{display:block;font-size:32px;font-weight:800;color:var(--gold);letter-spacing:-.03em}
+.overlay__score-value.hi{color:var(--sw);font-size:24px}
+.overlay__btn{width:100%;padding:16px;background:linear-gradient(135deg,var(--hw),var(--sw));border:none;border-radius:var(--radius);font-family:var(--font);font-size:16px;font-weight:800;letter-spacing:.04em;text-transform:uppercase;color:#081510;cursor:pointer;transition:transform .1s,filter .1s}
+.overlay__btn:active{transform:scale(.97)}
+.overlay__btn:hover{filter:brightness(1.08)}
+
+.arena.flash-wrong{animation:arenaFlash .35s ease}
+@keyframes arenaFlash{0%,100%{background-color:transparent}40%{background-color:rgba(255,79,106,.15)}}
+@keyframes correctPop{0%{transform:translateX(-50%) scale(1);opacity:1}50%{transform:translateX(-50%) scale(1.3);opacity:.8}100%{transform:translateX(-50%) scale(0);opacity:0}}
+@keyframes wrongShake{0%,100%{transform:translateX(-50%)}25%{transform:translateX(calc(-50% + 8px))}75%{transform:translateX(calc(-50% - 8px))}}
+.shake{animation:wrongShake .3s ease!important}
+
+@media (min-width:480px){.btn{height:80px}.btn__icon{font-size:28px}.btn__label{font-size:16px}}
+@media (min-width:768px){body{max-width:420px;margin:0 auto;border-left:1px solid var(--bg-3);border-right:1px solid var(--bg-3)}}
+  </style>
+</head>
+<body>
+  <header class="hud">
+    <div class="hud__score">
+      <span class="hud__label">PONTOS</span>
+      <span class="hud__value" id="score">0</span>
+      <span class="hud__hi">Recorde: <b id="hiscore">0</b></span>
+    </div>
+    <div class="hud__title">
+      <span class="hud__brand">HW</span>
+      <span class="hud__sep">vs</span>
+      <span class="hud__brand hud__brand--sw">SW</span>
+    </div>
+    <div class="hud__right">
+      <button class="pause-btn" id="pause-btn" aria-label="Pausa" title="Pausa (P)">II</button>
+      <div class="hud__lives" id="lives-display">
+        <span class="life">♥</span><span class="life">♥</span><span class="life">♥</span>
+      </div>
+    </div>
+  </header>
+
+  <main class="arena" id="arena" aria-live="polite" aria-label="Área de jogo">
+    <div class="level-badge" id="level-badge">Nível 1</div>
+    <div class="streak" id="streak" aria-hidden="true"></div>
+    <div class="feedback" id="feedback" aria-hidden="true"></div>
+  </main>
+
+  <footer class="controls">
+    <button class="btn btn--hw" id="btn-hardware" aria-label="Hardware">
+      <span class="btn__icon">⚙</span>
+      <span class="btn__label">Hardware</span>
+      <span class="btn__hint">← / A</span>
+    </button>
+    <button class="btn btn--sw" id="btn-software" aria-label="Software">
+      <span class="btn__icon">💿</span>
+      <span class="btn__label">Software</span>
+      <span class="btn__hint">→ / D</span>
+    </button>
+  </footer>
+
+  <div class="overlay" id="overlay" role="dialog" aria-modal="true" hidden>
+    <div class="overlay__card">
+      <p class="overlay__emoji" id="overlay-emoji">💀</p>
+      <h2 class="overlay__title" id="overlay-title">Game Over</h2>
+      <p class="overlay__sub" id="overlay-sub">Ficaste sem vidas!</p>
+      <div class="overlay__score-wrap">
+        <div class="overlay__score-item">
+          <span class="overlay__score-label">Pontuação</span>
+          <span class="overlay__score-value" id="overlay-score">0</span>
+        </div>
+        <div class="overlay__score-item">
+          <span class="overlay__score-label">Recorde</span>
+          <span class="overlay__score-value hi" id="overlay-hi">0</span>
+        </div>
+      </div>
+      <button class="overlay__btn" id="restart-btn">Jogar Novamente</button>
+    </div>
+  </div>
+
+  <div class="overlay" id="pause-overlay" role="dialog" aria-modal="true" hidden>
+    <div class="overlay__card">
+      <p class="overlay__emoji">⏸️</p>
+      <h2 class="overlay__title">Em Pausa</h2>
+      <p class="overlay__sub">Carrega para continuar</p>
+      <button class="overlay__btn" id="resume-btn">Continuar</button>
+    </div>
+  </div>
+
+  <div class="overlay" id="start-overlay" role="dialog" aria-modal="true">
+    <div class="overlay__card">
+      <p class="overlay__emoji">🖥️</p>
+      <h2 class="overlay__title">Hardware<br><span style="color:var(--sw)">vs</span><br>Software</h2>
+      <p class="overlay__sub">Classifica os componentes antes que saiam do ecrã!</p>
+      <ul class="overlay__rules">
+        <li>⚙️ <b>Hardware</b> = componentes físicos</li>
+        <li>💿 <b>Software</b> = programas e sistemas</li>
+        <li>❤️ Tens 3 vidas — não deixes nada passar</li>
+        <li>🔥 3+ acertos seguidos = bónus de pontos</li>
+        <li>⌨️ Teclado: ←/A (HW) · →/D (SW) · P (pausa)</li>
+      </ul>
+      <button class="overlay__btn" id="start-btn">Começar</button>
+    </div>
+  </div>
+
+<script>
+"use strict";
+
+/* Banco de dados — emojis únicos por categoria para evitar confusão com botões */
+const ITEMS = [
+  // Hardware
+  { name:"CPU",          emoji:"🧮", type:"hardware" },
+  { name:"RAM",          emoji:"💡", type:"hardware" },
+  { name:"SSD",          emoji:"📀", type:"hardware" },
+  { name:"GPU",          emoji:"🎮", type:"hardware" },
+  { name:"Placa-mãe",    emoji:"🔌", type:"hardware" },
+  { name:"HDD",          emoji:"🗄️", type:"hardware" },
+  { name:"ULA",          emoji:"🔢", type:"hardware" },
+  { name:"Fonte ATX",    emoji:"🔋", type:"hardware" },
+  { name:"Cooler",       emoji:"❄️", type:"hardware" },
+  { name:"Monitor",      emoji:"🖥️", type:"hardware" },
+  { name:"Teclado",      emoji:"⌨️", type:"hardware" },
+  { name:"Memória VRAM", emoji:"🧠", type:"hardware" },
+  { name:"USB",          emoji:"🔗", type:"hardware" },
+  { name:"Placa de Som", emoji:"🔊", type:"hardware" },
+  { name:"Registos CPU", emoji:"📟", type:"hardware" },
+  { name:"Rato",         emoji:"🖱️", type:"hardware" },
+  { name:"Impressora",   emoji:"🖨️", type:"hardware" },
+  // Software
+  { name:"Windows",   emoji:"🪟", type:"software" },
+  { name:"Linux",     emoji:"🐧", type:"software" },
+  { name:"Android",   emoji:"🤖", type:"software" },
+  { name:"macOS",     emoji:"🍎", type:"software" },
+  { name:"Python",    emoji:"🐍", type:"software" },
+  { name:"Java",      emoji:"☕", type:"software" },
+  { name:"VS Code",   emoji:"📝", type:"software" },
+  { name:"Chrome",    emoji:"🌐", type:"software" },
+  { name:"Git",       emoji:"🌿", type:"software" },
+  { name:"MySQL",     emoji:"🗃️", type:"software" },
+  { name:"Compilador",emoji:"🛠️", type:"software" },
+  { name:"Driver",    emoji:"📦", type:"software" },
+  { name:"Kernel",    emoji:"🫀", type:"software" },
+  { name:"Antivírus", emoji:"🛡️", type:"software" },
+  { name:"Photoshop", emoji:"🎨", type:"software" },
+  { name:"Spotify",   emoji:"🎵", type:"software" },
+];
+
+/* Estado */
+let score=0, lives=3, streak=0, difficulty=1, level=1;
+let gameRunning=false, paused=false;
+let spawnTimer=null, diffTimer=null;
+let activeItems=[];
+let hiScore = parseInt(localStorage.getItem("hwsw_hiscore")||"0",10) || 0;
+
+/* DOM */
+const $ = id => document.getElementById(id);
+const arena=$("arena"), scoreEl=$("score"), hiEl=$("hiscore"),
+      livesDisplay=$("lives-display"), feedbackEl=$("feedback"),
+      streakEl=$("streak"), levelBadge=$("level-badge"),
+      overlay=$("overlay"), startOverlay=$("start-overlay"), pauseOverlay=$("pause-overlay"),
+      overlayScore=$("overlay-score"), overlayHi=$("overlay-hi"),
+      overlayEmoji=$("overlay-emoji"), overlaySub=$("overlay-sub"),
+      btnHardware=$("btn-hardware"), btnSoftware=$("btn-software"),
+      restartBtn=$("restart-btn"), startBtn=$("start-btn"),
+      pauseBtn=$("pause-btn"), resumeBtn=$("resume-btn");
+
+const CONFIG = {
+  spawnInterval:2000, fallDuration:6000,
+  diffIncrement:1.12, diffInterval:10000, maxDifficulty:3.0,
+  minSpawnInterval:900,
+  streakBonus:5, pointsCorrect:10, pointsWrong:-5,
+};
+
+hiEl.textContent = hiScore;
+
+/* Spawn */
+function spawnItem(){
+  if(!gameRunning || paused) return;
+  const data = ITEMS[Math.floor(Math.random()*ITEMS.length)];
+  const xPos = Math.random()*70 + 15;
+  const duration = CONFIG.fallDuration / difficulty;
+
+  const el = document.createElement("div");
+  el.className = "falling-item";
+  el.style.left = xPos+"%";
+  el.style.animationDuration = duration+"ms";
+  el.dataset.type = data.type;
+  el.dataset.removed = "0";
+  el.innerHTML = `
+    <div class="item-bubble" data-type="${data.type}">
+      <span aria-hidden="true">${data.emoji}</span>
+    </div>
+    <span class="item-label">${data.name}</span>`;
+
+  // Listener nomeado para podermos remover
+  function onFallEnd(ev){
+    if(ev.animationName !== "fall") return;
+    if(el.dataset.removed === "1") return;
+    el.removeEventListener("animationend", onFallEnd);
+    loseLife(el);
+  }
+  el.addEventListener("animationend", onFallEnd);
+  el._onFallEnd = onFallEnd;
+
+  arena.appendChild(el);
+  activeItems.push(el);
+}
+
+/* Resposta */
+function handleAnswer(type){
+  if(!gameRunning || paused || activeItems.length===0) return;
+  const arenaRect = arena.getBoundingClientRect();
+  let lowest=null, lowestTop=-Infinity;
+  for(const item of activeItems){
+    if(item.dataset.removed==="1") continue;
+    const r = item.getBoundingClientRect();
+    // só itens visíveis dentro da arena
+    if(r.bottom < arenaRect.top) continue;
+    if(r.top > lowestTop){ lowestTop=r.top; lowest=item; }
+  }
+  if(!lowest) return;
+  if(lowest.dataset.type === type) handleCorrect(lowest);
+  else handleWrong(lowest);
+}
+
+function handleCorrect(el){
+  // marcar como removido ANTES de mudar animação
+  el.dataset.removed = "1";
+  if(el._onFallEnd) el.removeEventListener("animationend", el._onFallEnd);
+  removeFromActiveItems(el);
+
+  streak++;
+  let points = CONFIG.pointsCorrect;
+  if(streak >= 3){ points += CONFIG.streakBonus; showStreak(streak); }
+  else hideStreak();
+
+  score += points;
+  updateScore();
+
+  el.style.animation = "correctPop .35s ease forwards";
+  showFeedback("✓ +"+points, "correct");
+  el.addEventListener("animationend", ()=>el.remove(), { once:true });
+}
+
+function handleWrong(el){
+  streak = 0;
+  hideStreak();
+  score = Math.max(0, score + CONFIG.pointsWrong);
+  updateScore();
+
+  // Shake sem reiniciar a queda: aplicamos via classe num wrapper interno
+  // Truque: usar um filhno bubble para shake horizontal sem mexer no top
+  const bubble = el.querySelector(".item-bubble");
+  if(bubble){
+    bubble.style.animation = "none";
+    void bubble.offsetWidth;
+    bubble.style.animation = "wrongShake .3s ease";
+    bubble.addEventListener("animationend", ()=>{ bubble.style.animation=""; }, { once:true });
+  }
+  arena.classList.add("flash-wrong");
+  setTimeout(()=>arena.classList.remove("flash-wrong"), 350);
+  showFeedback("✗ Errado!", "wrong");
+}
+
+function loseLife(el){
+  if(el.dataset.removed === "1") return;
+  el.dataset.removed = "1";
+  removeFromActiveItems(el);
+  el.remove();
+  lives--;
+  streak = 0;
+  hideStreak();
+  updateLives();
+  showFeedback("⚠ Vida perdida!", "wrong");
+  arena.classList.add("flash-wrong");
+  setTimeout(()=>arena.classList.remove("flash-wrong"), 350);
+  if(lives <= 0) endGame();
+}
+
+/* Dificuldade */
+function startDifficultyRamp(){
+  diffTimer = setInterval(()=>{
+    if(difficulty >= CONFIG.maxDifficulty) return;
+    difficulty = Math.min(CONFIG.maxDifficulty, difficulty * CONFIG.diffIncrement);
+    level++;
+    levelBadge.textContent = "Nível "+level;
+    clearInterval(spawnTimer);
+    const newInterval = Math.max(CONFIG.minSpawnInterval, CONFIG.spawnInterval / difficulty);
+    spawnTimer = setInterval(spawnItem, newInterval);
+  }, CONFIG.diffInterval);
+}
+
+/* HUD */
+function updateScore(){
+  scoreEl.textContent = score;
+  if(score > hiScore){
+    hiScore = score;
+    hiEl.textContent = hiScore;
+    try{ localStorage.setItem("hwsw_hiscore", String(hiScore)); }catch(_){}
+  }
+}
+function updateLives(){
+  livesDisplay.querySelectorAll(".life").forEach((h,i)=>h.classList.toggle("lost", i>=lives));
+}
+function showFeedback(msg, type){
+  feedbackEl.textContent = msg;
+  feedbackEl.className = "feedback";
+  void feedbackEl.offsetWidth;
+  feedbackEl.classList.add(type==="correct" ? "show-correct" : "show-wrong");
+}
+function showStreak(n){ streakEl.textContent = "🔥 "+n+"× Streak!"; streakEl.classList.add("visible"); }
+function hideStreak(){ streakEl.classList.remove("visible"); }
+function removeFromActiveItems(el){
+  const i = activeItems.indexOf(el);
+  if(i!==-1) activeItems.splice(i,1);
+}
+
+/* Pausa (também usada para visibilitychange) */
+function pauseGame(showOverlay=true){
+  if(!gameRunning || paused) return;
+  paused = true;
+  clearInterval(spawnTimer);
+  clearInterval(diffTimer);
+  activeItems.forEach(el=>el.classList.add("paused"));
+  if(showOverlay) pauseOverlay.hidden = false;
+}
+function resumeGame(){
+  if(!gameRunning || !paused) return;
+  paused = false;
+  pauseOverlay.hidden = true;
+  activeItems.forEach(el=>el.classList.remove("paused"));
+  const interval = Math.max(CONFIG.minSpawnInterval, CONFIG.spawnInterval / difficulty);
+  spawnTimer = setInterval(spawnItem, interval);
+  startDifficultyRamp();
+}
+
+/* Ciclo */
+function startGame(){
+  gameRunning = true; paused = false;
+  level = 1; levelBadge.textContent = "Nível 1";
+  spawnItem();
+  spawnTimer = setInterval(spawnItem, CONFIG.spawnInterval);
+  startDifficultyRamp();
+}
+function endGame(){
+  gameRunning = false;
+  clearInterval(spawnTimer); clearInterval(diffTimer);
+  activeItems.forEach(el=>el.remove());
+  activeItems = [];
+
+  let emoji="💀", sub="Ficaste sem vidas!";
+  if(score >= 150){ emoji="🏆"; sub="Lendário! Conheces a arquitetura!"; }
+  else if(score >= 80){ emoji="👏"; sub="Boa! Estás no caminho certo."; }
+  else if(score >= 30){ emoji="💪"; sub="Continua a praticar!"; }
+
+  overlayEmoji.textContent = emoji;
+  overlaySub.textContent = sub;
+  overlayScore.textContent = score;
+  overlayHi.textContent = hiScore;
+  overlay.hidden = false;
+}
+function resetGame(){
+  activeItems.forEach(el=>el.remove());
+  activeItems = [];
+  score=0; lives=3; streak=0; difficulty=1;
+  updateScore(); updateLives(); hideStreak();
+  overlay.hidden = true;
+  startGame();
+}
+
+/* Listeners */
+btnHardware.addEventListener("click", ()=>handleAnswer("hardware"));
+btnSoftware.addEventListener("click", ()=>handleAnswer("software"));
+restartBtn.addEventListener("click", resetGame);
+startBtn.addEventListener("click", ()=>{ startOverlay.hidden = true; startGame(); });
+pauseBtn.addEventListener("click", ()=>{ paused ? resumeGame() : pauseGame(true); });
+resumeBtn.addEventListener("click", resumeGame);
+
+document.addEventListener("keydown", e=>{
+  if(e.key==="p" || e.key==="P"){
+    if(gameRunning){ paused ? resumeGame() : pauseGame(true); }
+    return;
+  }
+  if(!gameRunning || paused) return;
+  if(e.key==="ArrowLeft"  || e.key==="a" || e.key==="A") handleAnswer("hardware");
+  if(e.key==="ArrowRight" || e.key==="d" || e.key==="D") handleAnswer("software");
+});
+
+// Pausa automática quando aba muda
+document.addEventListener("visibilitychange", ()=>{
+  if(document.hidden && gameRunning && !paused) pauseGame(true);
+});
+</script>
+</body>
+</html>
