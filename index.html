@@ -2,745 +2,229 @@
 <html lang="pt-BR">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>CPU Builder ULTRA - Simulador Profissional</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>Portal Gamer</title>
+
     <style>
-        * {
+
+        /* RESET */
+        *{
             margin: 0;
             padding: 0;
             box-sizing: border-box;
         }
 
-        body {
-            font-family: 'Courier New', monospace;
-            background: linear-gradient(135deg, #0a0e27 0%, #1a1a3e 100%);
-            color: #00ff00;
-            min-height: 100vh;
-            overflow: hidden;
+        body{
+            font-family: Arial, Helvetica, sans-serif;
+            background-color: #0f172a;
+            color: white;
         }
 
-        .container {
-            display: flex;
-            flex-direction: column;
-            height: 100vh;
-            padding: 8px;
-            gap: 8px;
-        }
-
-        header {
-            background: linear-gradient(90deg, rgba(0, 255, 0, 0.1), rgba(0, 150, 255, 0.1));
-            border: 2px solid #00ff00;
-            padding: 12px;
-            border-radius: 8px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            font-size: clamp(14px, 3vw, 20px);
-            font-weight: bold;
-            text-shadow: 0 0 10px #00ff00;
-        }
-
-        .level-selector {
-            display: flex;
-            gap: 8px;
-        }
-
-        .level-btn {
-            padding: 6px 12px;
-            background: rgba(0, 150, 255, 0.2);
-            border: 1px solid #0096ff;
-            color: #0096ff;
-            border-radius: 4px;
-            cursor: pointer;
-            font-size: 12px;
-            transition: all 0.2s;
-        }
-
-        .level-btn.active {
-            background: rgba(0, 255, 0, 0.3);
-            border-color: #00ff00;
-            color: #00ff00;
-            box-shadow: 0 0 10px rgba(0, 255, 0, 0.5);
-        }
-
-        .level-btn:hover {
-            transform: scale(1.05);
-        }
-
-        .stats {
-            display: flex;
-            gap: 15px;
-            font-size: 12px;
-        }
-
-        .stat {
-            display: flex;
-            align-items: center;
-            gap: 5px;
-        }
-
-        .main-content {
-            display: grid;
-            grid-template-columns: 1fr 2fr 1fr;
-            gap: 8px;
-            flex: 1;
-            min-height: 0;
-        }
-
-        .panel {
-            background: rgba(0, 255, 0, 0.03);
-            border: 2px solid #00ff00;
-            border-radius: 8px;
-            padding: 12px;
-            overflow-y: auto;
-            display: flex;
-            flex-direction: column;
-        }
-
-        .panel h2 {
-            font-size: clamp(12px, 2.5vw, 16px);
-            margin-bottom: 8px;
-            color: #00ff00;
-            text-shadow: 0 0 5px #00ff00;
-            border-bottom: 1px solid #00ff00;
-            padding-bottom: 6px;
-        }
-
-        .components-list {
-            display: flex;
-            flex-direction: column;
-            gap: 6px;
-            flex: 1;
-        }
-
-        .component {
-            background: linear-gradient(135deg, rgba(0, 255, 0, 0.15), rgba(0, 150, 255, 0.1));
-            border: 1px solid #00ff00;
-            padding: 8px;
-            border-radius: 4px;
-            cursor: grab;
-            user-select: none;
-            transition: all 0.2s;
-            font-size: clamp(10px, 2vw, 12px);
-        }
-
-        .component:hover {
-            background: linear-gradient(135deg, rgba(0, 255, 0, 0.25), rgba(0, 150, 255, 0.15));
-            box-shadow: 0 0 10px rgba(0, 255, 0, 0.4);
-            transform: scale(1.02);
-        }
-
-        .component-name {
-            font-weight: bold;
-            color: #00ff00;
-        }
-
-        .component-desc {
-            font-size: 0.8em;
-            color: #00aa00;
-            margin-top: 2px;
-        }
-
-        .motherboard {
-            display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            gap: 8px;
-            flex: 1;
-        }
-
-        .slot {
-            background: rgba(0, 100, 0, 0.15);
-            border: 2px dashed #00ff00;
-            border-radius: 4px;
-            padding: 10px;
-            min-height: 50px;
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-            transition: all 0.2s;
-            cursor: pointer;
-            font-size: clamp(9px, 1.8vw, 11px);
-        }
-
-        .slot:hover {
-            background: rgba(0, 150, 0, 0.25);
-            box-shadow: inset 0 0 8px rgba(0, 255, 0, 0.3);
-        }
-
-        .slot-label {
-            color: #00aa00;
-            font-size: 0.85em;
-            margin-bottom: 4px;
-        }
-
-        .slot.occupied {
-            background: rgba(0, 255, 0, 0.1);
-            border-style: solid;
-            border-color: #00ff00;
-        }
-
-        .placed-component {
-            color: #00ff00;
-            font-weight: bold;
+        /* CABEÇALHO */
+        header{
+            background-color: #111827;
+            padding: 30px;
             text-align: center;
-            font-size: 0.9em;
+            border-bottom: 3px solid #22c55e;
         }
 
-        .status-panel {
-            display: flex;
-            flex-direction: column;
-            gap: 8px;
+        header h1{
+            color: #22c55e;
+            margin-bottom: 10px;
         }
 
-        .status-item {
-            background: rgba(0, 100, 0, 0.15);
-            border: 1px solid #00aa00;
-            padding: 8px;
-            border-radius: 4px;
-            font-size: clamp(10px, 2vw, 12px);
+        header p{
+            color: #cbd5e1;
         }
 
-        .status-label {
-            color: #00aa00;
-            font-size: 0.85em;
+        /* CONTAINER */
+        .container{
+            width: 90%;
+            max-width: 1100px;
+            margin: 40px auto;
         }
 
-        .status-value {
-            color: #00ff00;
-            font-weight: bold;
-            font-size: 1em;
+        /* GRID DOS JOGOS */
+        .games{
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 20px;
         }
 
-        .progress-bar {
-            background: rgba(0, 50, 0, 0.5);
-            border: 1px solid #00aa00;
-            height: 16px;
-            border-radius: 3px;
-            overflow: hidden;
-            margin-top: 4px;
+        /* CARD */
+        .card{
+            background-color: #1e293b;
+            padding: 25px;
+            border-radius: 10px;
+            text-align: center;
+            transition: 0.3s;
+            border: 2px solid transparent;
         }
 
-        .progress-fill {
-            background: linear-gradient(90deg, #00aa00, #00ff00);
-            height: 100%;
-            width: 0%;
-            transition: width 0.3s;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 8px;
-            color: #000;
-            font-weight: bold;
+        .card:hover{
+            transform: translateY(-5px);
+            border-color: #22c55e;
         }
 
-        .button-group {
-            display: flex;
-            gap: 6px;
-            margin-top: auto;
-        }
-
-        button {
-            flex: 1;
-            padding: clamp(6px, 1.5vw, 10px);
-            background: rgba(0, 255, 0, 0.15);
-            color: #00ff00;
-            border: 1px solid #00ff00;
-            border-radius: 4px;
-            cursor: pointer;
-            font-weight: bold;
-            font-size: clamp(10px, 1.8vw, 12px);
-            transition: all 0.2s;
-            font-family: 'Courier New', monospace;
-            text-shadow: 0 0 5px #00ff00;
-        }
-
-        button:hover:not(:disabled) {
-            background: rgba(0, 255, 0, 0.3);
-            box-shadow: 0 0 12px rgba(0, 255, 0, 0.5);
-            transform: scale(1.05);
-        }
-
-        button:disabled {
-            opacity: 0.4;
-            cursor: not-allowed;
-        }
-
-        .modal {
-            display: none;
-            position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: rgba(0, 0, 0, 0.95);
-            z-index: 1000;
-            justify-content: center;
-            align-items: center;
-            padding: 15px;
-        }
-
-        .modal.active {
-            display: flex;
-        }
-
-        .modal-content {
-            background: linear-gradient(135deg, #0a0e27, #1a1a3e);
-            border: 3px solid #00ff00;
-            border-radius: 8px;
-            padding: 15px;
-            max-width: 90%;
-            max-height: 85vh;
-            overflow-y: auto;
-            box-shadow: 0 0 30px rgba(0, 255, 0, 0.5);
-        }
-
-        .modal-title {
-            font-size: clamp(16px, 4vw, 22px);
-            color: #00ff00;
-            text-shadow: 0 0 10px #00ff00;
+        .card h2{
             margin-bottom: 15px;
-            text-align: center;
+            color: #22c55e;
         }
 
-        .cycle-stage {
-            background: rgba(0, 100, 0, 0.15);
-            border-left: 3px solid #00aa00;
-            padding: 12px;
-            margin-bottom: 8px;
-            border-radius: 4px;
-            opacity: 0.5;
-            transition: all 0.3s;
-            font-size: clamp(11px, 2vw, 13px);
+        .card p{
+            color: #cbd5e1;
+            margin-bottom: 20px;
+            font-size: 14px;
         }
 
-        .cycle-stage.active {
-            background: rgba(0, 255, 0, 0.15);
-            border-left-color: #00ff00;
-            opacity: 1;
-            box-shadow: 0 0 15px rgba(0, 255, 0, 0.3);
-        }
-
-        .cycle-name {
-            color: #00ff00;
+        /* BOTÃO */
+        .btn{
+            display: inline-block;
+            padding: 10px 18px;
+            background-color: #22c55e;
+            color: black;
+            text-decoration: none;
+            border-radius: 5px;
             font-weight: bold;
-            margin-bottom: 4px;
+            transition: 0.3s;
         }
 
-        .cycle-desc {
-            color: #00aa00;
-            font-size: 0.9em;
+        .btn:hover{
+            background-color: #16a34a;
         }
 
-        .achievement {
-            background: rgba(255, 215, 0, 0.1);
-            border: 1px solid #ffd700;
-            padding: 8px;
-            margin: 5px 0;
-            border-radius: 4px;
-            color: #ffd700;
-            font-size: 12px;
-        }
-
-        .trophy {
-            font-size: clamp(30px, 8vw, 50px);
+        /* RODAPÉ */
+        footer{
+            margin-top: 50px;
+            background-color: #111827;
             text-align: center;
-            margin: 15px 0;
-            animation: bounce 0.6s infinite;
+            padding: 20px;
+            color: #94a3b8;
         }
 
-        @keyframes bounce {
-            0%, 100% { transform: translateY(0); }
-            50% { transform: translateY(-8px); }
-        }
-
-        .leaderboard {
-            background: rgba(0, 100, 0, 0.1);
-            border: 1px solid #00aa00;
-            padding: 8px;
-            border-radius: 4px;
-            font-size: 11px;
-            max-height: 120px;
-            overflow-y: auto;
-        }
-
-        .leaderboard-entry {
-            display: flex;
-            justify-content: space-between;
-            padding: 4px;
-            border-bottom: 1px solid rgba(0, 255, 0, 0.2);
-        }
-
-        .close-modal {
-            margin-top: 15px;
-            width: 100%;
-        }
-
-        @media (max-width: 1024px) {
-            .main-content {
-                grid-template-columns: 1fr;
-            }
-
-            .motherboard {
-                grid-template-columns: repeat(2, 1fr);
-            }
-        }
-
-        @media (max-width: 768px) {
-            .container {
-                padding: 4px;
-                gap: 4px;
-            }
-
-            .panel {
-                padding: 8px;
-            }
-
-            .main-content {
-                grid-template-columns: 1fr;
-                gap: 4px;
-            }
-
-            .motherboard {
-                grid-template-columns: 1fr;
-            }
-
-            header {
-                flex-direction: column;
-                gap: 8px;
-                padding: 8px;
-            }
-
-            .level-selector {
-                width: 100%;
-                justify-content: center;
-            }
-
-            .stats {
-                width: 100%;
-                justify-content: center;
-            }
-        }
-
-        ::-webkit-scrollbar {
-            width: 6px;
-        }
-
-        ::-webkit-scrollbar-track {
-            background: rgba(0, 100, 0, 0.1);
-        }
-
-        ::-webkit-scrollbar-thumb {
-            background: #00aa00;
-            border-radius: 3px;
-        }
-
-        ::-webkit-scrollbar-thumb:hover {
-            background: #00ff00;
-        }
     </style>
 </head>
 <body>
-    <div class="container">
-        <header>
-            <div>⚙️ CPU BUILDER ULTRA</div>
-            <div class="level-selector" id="levelSelector"></div>
-            <div class="stats">
-                <div class="stat">⏱️ <span id="timeStats">0s</span></div>
-                <div class="stat">⭐ <span id="scoreStats">0</span></div>
+
+    <!-- CABEÇALHO -->
+    <header>
+
+        <h1>🎮 Portal Gamer</h1>
+
+        <p>
+            Central de jogos e projetos HTML
+        </p>
+
+    </header>
+
+    <!-- CONTEÚDO -->
+    <main class="container">
+
+        <section class="games">
+
+            <!-- LINK 1 -->
+            <div class="card">
+
+                <h2>Jogo 01</h2>
+
+                <p>
+                    Espaço reservado para seu primeiro jogo.
+                </p>
+
+                <a href="hardware-vs-software-lovablw.html" class="btn">
+                    Abrir
+                </a>
+
             </div>
-        </header>
 
-        <div class="main-content">
-            <!-- COMPONENTES -->
-            <div class="panel">
-                <h2>🧩 Componentes</h2>
-                <div class="components-list" id="componentsList"></div>
+            <!-- LINK 2 -->
+            <div class="card">
+
+                <h2>Jogo 02</h2>
+
+                <p>
+                    Adicione aqui outro arquivo HTML.
+                </p>
+
+                <a href="index_all_in_one.html" class="btn">
+                    Abrir
+                </a>
+
             </div>
 
-            <!-- PLACA-MÃE -->
-            <div class="panel">
-                <h2>🖥️ Placa-Mãe</h2>
-                <div class="motherboard" id="motherboard"></div>
+            <!-- LINK 3 -->
+            <div class="card">
+
+                <h2>Jogo 03</h2>
+
+                <p>
+                    Área reservada para futuros projetos.
+                </p>
+
+                <a href="index_v2.html" class="btn">
+                    Abrir
+                </a>
+
             </div>
 
-            <!-- STATUS -->
-            <div class="panel">
-                <h2>📊 Status</h2>
-                <div class="status-panel">
-                    <div class="status-item">
-                        <div class="status-label">Componentes</div>
-                        <div class="status-value"><span id="connectedCount">0</span> / <span id="totalComponents">18</span></div>
-                        <div class="progress-bar">
-                            <div class="progress-fill" id="progressFill">0%</div>
-                        </div>
-                    </div>
-                    <div class="status-item">
-                        <div class="status-label">Estado</div>
-                        <div class="status-value" id="statusText">🔴 Incompleta</div>
-                    </div>
-                    <div class="status-item">
-                        <div class="leaderboard" id="leaderboard"></div>
-                    </div>
-                    <div class="button-group">
-                        <button onclick="resetGame()">↻ Reset</button>
-                        <button id="testBtn" onclick="executeInstructionCycle()" disabled>▶ Testar</button>
-                    </div>
-                </div>
+            <!-- LINK 4 -->
+            <div class="card">
+
+                <h2>Jogo 04</h2>
+
+                <p>
+                    Link vazio para adicionar novos games.
+                </p>
+
+                <a href="index_v3.html" class="btn">
+                    Abrir
+                </a>
+
             </div>
-        </div>
-    </div>
 
-    <!-- MODAL DE EXECUÇÃO -->
-    <div class="modal" id="executionModal">
-        <div class="modal-content">
-            <div class="modal-title">⚡ Ciclo de Instrução</div>
-            <div id="cycleContainer"></div>
-            <button class="close-modal" onclick="closeModal()">Fechar</button>
-        </div>
-    </div>
+            <!-- LINK 5 -->
+            <div class="card">
 
-    <script>
-        const LEVELS = {
-            easy: { name: 'Fácil', components: 6, time: 300 },
-            normal: { name: 'Normal', components: 12, time: 180 },
-            hard: { name: 'Difícil', components: 18, time: 120 }
-        };
+                <h2>Jogo 05</h2>
 
-        const ALL_COMPONENTS = {
-            alu: { id: 'alu', name: 'ULA', desc: 'Unidade Lógica e Aritmética', level: 'easy' },
-            uc: { id: 'uc', name: 'UC', desc: 'Unidade de Controle', level: 'easy' },
-            registers: { id: 'registers', name: 'Registradores', desc: 'Armazenam dados', level: 'easy' },
-            cache: { id: 'cache', name: 'Cache L1', desc: 'Memória rápida', level: 'easy' },
-            bus: { id: 'bus', name: 'Barramento', desc: 'Conecta componentes', level: 'easy' },
-            clock: { id: 'clock', name: 'Clock', desc: 'Sincronização', level: 'easy' },
-            memory: { id: 'memory', name: 'Memória RAM', desc: 'Armazenamento', level: 'normal' },
-            decoder: { id: 'decoder', name: 'Decodificador', desc: 'Decodifica instruções', level: 'normal' },
-            cache_l2: { id: 'cache_l2', name: 'Cache L2', desc: 'Memória intermediária', level: 'normal' },
-            mmu: { id: 'mmu', name: 'MMU', desc: 'Gerenciador de Memória', level: 'normal' },
-            fpu: { id: 'fpu', name: 'FPU', desc: 'Unidade Ponto Flutuante', level: 'normal' },
-            prefetch: { id: 'prefetch', name: 'Prefetch', desc: 'Pré-busca de instruções', level: 'normal' },
-            cache_l3: { id: 'cache_l3', name: 'Cache L3', desc: 'Memória terciária', level: 'hard' },
-            tlb: { id: 'tlb', name: 'TLB', desc: 'Tradução de Endereços', level: 'hard' },
-            branch_pred: { id: 'branch_pred', name: 'Preditor', desc: 'Predição de Desvios', level: 'hard' },
-            pipeline: { id: 'pipeline', name: 'Pipeline', desc: 'Processamento em Paralelo', level: 'hard' },
-            microcode: { id: 'microcode', name: 'Microcode', desc: 'Microcódigo ROM', level: 'hard' },
-            thermal: { id: 'thermal', name: 'Controle Térmico', desc: 'Gerenciamento de Calor', level: 'hard' }
-        };
+                <p>
+                    Card adicional para novos arquivos.
+                </p>
 
-        let currentLevel = 'easy';
-        let gameState = { placedComponents: {}, isExecuting: false, score: 0, startTime: 0, achievements: [] };
-        let draggedComponent = null;
-        let timeInterval = null;
+                <a href="indexx.html" class="btn">
+                    Abrir
+                </a>
 
-        function initGame() {
-            renderLevelSelector();
-            startLevel('easy');
-        }
+            </div>
 
-        function renderLevelSelector() {
-            const selector = document.getElementById('levelSelector');
-            selector.innerHTML = '';
-            Object.entries(LEVELS).forEach(([key, level]) => {
-                const btn = document.createElement('button');
-                btn.className = `level-btn ${key === 'easy' ? 'active' : ''}`;
-                btn.textContent = level.name;
-                btn.onclick = () => startLevel(key);
-                selector.appendChild(btn);
-            });
-        }
+            <!-- LINK 6 -->
+            <div class="card">
 
-        function startLevel(level) {
-            currentLevel = level;
-            gameState = { placedComponents: {}, isExecuting: false, score: 0, startTime: Date.now(), achievements: [] };
-            
-            document.querySelectorAll('.level-btn').forEach(btn => btn.classList.remove('active'));
-            event.target.classList.add('active');
+                <h2>Jogo 06</h2>
 
-            const levelConfig = LEVELS[level];
-            document.getElementById('totalComponents').textContent = levelConfig.components;
-            
-            renderComponents();
-            renderSlots();
-            updateStatus();
-            startTimer();
-        }
+                <p>
+                    Espaço para mais um projeto gamer.
+                </p>
 
-        function renderComponents() {
-            const list = document.getElementById('componentsList');
-            list.innerHTML = '';
-            const levelConfig = LEVELS[currentLevel];
-            
-            Object.values(ALL_COMPONENTS).forEach(comp => {
-                if (comp.level === 'easy' || (levelConfig.components >= 12 && comp.level === 'normal') || (levelConfig.components >= 18 && comp.level === 'hard')) {
-                    const div = document.createElement('div');
-                    div.className = 'component';
-                    div.draggable = true;
-                    div.dataset.componentId = comp.id;
-                    div.innerHTML = `<div class="component-name">${comp.name}</div><div class="component-desc">${comp.desc}</div>`;
-                    
-                    div.addEventListener('dragstart', (e) => {
-                        draggedComponent = comp.id;
-                        e.dataTransfer.effectAllowed = 'move';
-                    });
+                <a href="memory-maze.html" class="btn">
+                    Abrir
+                </a>
 
-                    div.addEventListener('dragend', () => {
-                        draggedComponent = null;
-                    });
+            </div>
 
-                    list.appendChild(div);
-                }
-            });
-        }
+        </section>
 
-        function renderSlots() {
-            const board = document.getElementById('motherboard');
-            board.innerHTML = '';
-            const levelConfig = LEVELS[currentLevel];
-            const slotCount = levelConfig.components;
-            
-            for (let i = 0; i < slotCount; i++) {
-                const slotId = `slot-${i}`;
-                const div = document.createElement('div');
-                div.className = 'slot';
-                div.id = slotId;
-                div.dataset.slotId = slotId;
-                div.innerHTML = `<div class="slot-label">Slot ${i + 1}</div><div id="content-${slotId}"></div>`;
+    </main>
 
-                div.addEventListener('dragover', (e) => {
-                    e.preventDefault();
-                    e.dataTransfer.dropEffect = 'move';
-                    div.style.background = 'rgba(0, 255, 0, 0.2)';
-                });
+    <!-- RODAPÉ -->
+    <footer>
 
-                div.addEventListener('dragleave', () => {
-                    div.style.background = '';
-                });
+        <p>
+            Desenvolvido com HTML5 e CSS3
+        </p>
 
-                div.addEventListener('drop', (e) => {
-                    e.preventDefault();
-                    div.style.background = '';
-                    if (draggedComponent) {
-                        placeComponent(slotId, draggedComponent);
-                    }
-                });
+    </footer>
 
-                board.appendChild(div);
-            }
-        }
-
-        function placeComponent(slotId, componentId) {
-            Object.keys(gameState.placedComponents).forEach(key => {
-                if (gameState.placedComponents[key] === componentId) delete gameState.placedComponents[key];
-            });
-            gameState.placedComponents[slotId] = componentId;
-            const content = document.getElementById(`content-${slotId}`);
-            content.innerHTML = `<div class="placed-component">${ALL_COMPONENTS[componentId].name}</div>`;
-            document.getElementById(slotId).classList.add('occupied');
-            gameState.score += 10;
-            updateStatus();
-        }
-
-        function updateStatus() {
-            const levelConfig = LEVELS[currentLevel];
-            const count = Object.keys(gameState.placedComponents).length;
-            const percentage = (count / levelConfig.components) * 100;
-            
-            document.getElementById('connectedCount').textContent = count;
-            document.getElementById('progressFill').style.width = percentage + '%';
-            document.getElementById('progressFill').textContent = Math.round(percentage) + '%';
-            document.getElementById('scoreStats').textContent = gameState.score;
-            
-            if (count === levelConfig.components) {
-                document.getElementById('statusText').textContent = '🟢 Pronta!';
-                document.getElementById('testBtn').disabled = false;
-                addAchievement('CPU Montada!');
-            } else {
-                document.getElementById('statusText').textContent = `🟡 ${levelConfig.components - count} faltando`;
-                document.getElementById('testBtn').disabled = true;
-            }
-
-            updateLeaderboard();
-        }
-
-        function startTimer() {
-            if (timeInterval) clearInterval(timeInterval);
-            timeInterval = setInterval(() => {
-                const elapsed = Math.floor((Date.now() - gameState.startTime) / 1000);
-                document.getElementById('timeStats').textContent = elapsed + 's';
-            }, 1000);
-        }
-
-        function addAchievement(text) {
-            if (!gameState.achievements.includes(text)) {
-                gameState.achievements.push(text);
-                gameState.score += 50;
-            }
-        }
-
-        function updateLeaderboard() {
-            const board = document.getElementById('leaderboard');
-            board.innerHTML = '<div style="color: #00ff00; font-weight: bold; margin-bottom: 4px;">🏆 Achievements</div>';
-            gameState.achievements.forEach(ach => {
-                const entry = document.createElement('div');
-                entry.className = 'achievement';
-                entry.textContent = '✓ ' + ach;
-                board.appendChild(entry);
-            });
-        }
-
-        async function executeInstructionCycle() {
-            const levelConfig = LEVELS[currentLevel];
-            if (Object.keys(gameState.placedComponents).length !== levelConfig.components || gameState.isExecuting) return;
-            
-            gameState.isExecuting = true;
-            document.getElementById('testBtn').disabled = true;
-
-            const modal = document.getElementById('executionModal');
-            const container = document.getElementById('cycleContainer');
-            modal.classList.add('active');
-            container.innerHTML = '';
-
-            const stages = [
-                { name: '1️⃣ BUSCA (Fetch)', desc: 'Registrador PC busca instrução da memória' },
-                { name: '2️⃣ DECODIFICAÇÃO (Decode)', desc: 'Decodificador interpreta a instrução' },
-                { name: '3️⃣ EXECUÇÃO (Execute)', desc: 'ULA executa a operação' },
-                { name: '4️⃣ ESCRITA (Write Back)', desc: 'Resultado armazenado nos registradores' }
-            ];
-
-            for (let stage of stages) {
-                const stageDiv = document.createElement('div');
-                stageDiv.className = 'cycle-stage';
-                stageDiv.innerHTML = `<div class="cycle-name">${stage.name}</div><div class="cycle-desc">${stage.desc}</div>`;
-                container.appendChild(stageDiv);
-                await new Promise(r => setTimeout(r, 250));
-                stageDiv.classList.add('active');
-                await new Promise(r => setTimeout(r, 1200));
-                stageDiv.classList.remove('active');
-            }
-
-            gameState.score += 100;
-            addAchievement('Ciclo Completo!');
-            
-            const victory = document.createElement('div');
-            victory.innerHTML = '<div class="trophy">🏆</div><div style="color: #00ff00; font-weight: bold; text-align: center; font-size: 16px;">GAFANHOTO DE OURO!</div><div style="color: #00aa00; text-align: center; margin-top: 10px;">Pontos: ' + gameState.score + '</div>';
-            container.appendChild(victory);
-
-            gameState.isExecuting = false;
-        }
-
-        function closeModal() {
-            document.getElementById('executionModal').classList.remove('active');
-            document.getElementById('testBtn').disabled = false;
-        }
-
-        function resetGame() {
-            gameState.placedComponents = {};
-            renderSlots();
-            updateStatus();
-        }
-
-        initGame();
-    </script>
 </body>
 </html>
