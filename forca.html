@@ -1,0 +1,458 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>Forca - Arquitetura Von Neumann</title>
+
+    <style>
+
+        /* =========================
+           RESET
+        ========================== */
+        *{
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        /* =========================
+           BODY
+        ========================== */
+        body{
+            font-family: Arial, Helvetica, sans-serif;
+            background: #0f172a;
+            color: white;
+
+            min-height: 100vh;
+
+            display: flex;
+            justify-content: center;
+            align-items: center;
+
+            padding: 20px;
+        }
+
+        /* =========================
+           CONTAINER
+        ========================== */
+        .container{
+            width: 100%;
+            max-width: 700px;
+
+            background-color: #111827;
+
+            border-radius: 15px;
+
+            padding: 30px;
+
+            text-align: center;
+
+            border: 2px solid #22c55e;
+
+            box-shadow: 0 0 20px rgba(34, 197, 94, 0.2);
+        }
+
+        h1{
+            color: #22c55e;
+            margin-bottom: 10px;
+        }
+
+        .descricao{
+            color: #cbd5e1;
+            margin-bottom: 25px;
+        }
+
+        /* =========================
+           FORCA
+        ========================== */
+        .forca{
+            font-size: 90px;
+            margin: 20px 0;
+        }
+
+        /* =========================
+           PALAVRA
+        ========================== */
+        .palavra{
+            display: flex;
+            justify-content: center;
+            flex-wrap: wrap;
+            gap: 10px;
+
+            margin: 30px 0;
+        }
+
+        .letra{
+            width: 40px;
+            height: 50px;
+
+            border-bottom: 3px solid #22c55e;
+
+            display: flex;
+            justify-content: center;
+            align-items: center;
+
+            font-size: 28px;
+            font-weight: bold;
+        }
+
+        /* =========================
+           INPUT
+        ========================== */
+        input{
+            width: 80px;
+
+            padding: 12px;
+
+            text-align: center;
+
+            font-size: 20px;
+
+            border: none;
+            border-radius: 8px;
+
+            outline: none;
+
+            margin-bottom: 20px;
+        }
+
+        /* =========================
+           BOTÃO
+        ========================== */
+        button{
+            padding: 12px 20px;
+
+            background-color: #22c55e;
+
+            border: none;
+            border-radius: 8px;
+
+            font-weight: bold;
+
+            cursor: pointer;
+
+            transition: 0.3s;
+        }
+
+        button:hover{
+            background-color: #16a34a;
+        }
+
+        /* =========================
+           INFO
+        ========================== */
+        .info{
+            margin-top: 20px;
+            color: #cbd5e1;
+        }
+
+        .tentativas{
+            margin-top: 10px;
+            color: #f87171;
+            font-weight: bold;
+        }
+
+        .tema{
+            margin-top: 15px;
+            color: #38bdf8;
+        }
+
+        /* =========================
+           RESPONSIVO
+        ========================== */
+        @media(max-width: 600px){
+
+            .container{
+                padding: 20px;
+            }
+
+            .forca{
+                font-size: 70px;
+            }
+
+            .letra{
+                width: 32px;
+                height: 42px;
+                font-size: 22px;
+            }
+
+            input{
+                width: 70px;
+            }
+
+        }
+
+    </style>
+</head>
+<body>
+
+    <main class="container">
+
+        <h1>🎮 Jogo da Forca</h1>
+
+        <p class="descricao">
+            Tema: Arquitetura de Von Neumann
+        </p>
+
+        <!-- DESENHO DA FORCA -->
+        <div class="forca" id="forca">
+            😀
+        </div>
+
+        <!-- PALAVRA -->
+        <section class="palavra" id="palavra"></section>
+
+        <!-- INPUT -->
+        <input
+            type="text"
+            id="entrada"
+            maxlength="1"
+            placeholder="A"
+        >
+
+        <br>
+
+        <button onclick="verificarLetra()">
+            Tentar
+        </button>
+
+        <!-- INFO -->
+        <div class="info">
+
+            <p>
+                Letras usadas:
+                <span id="usadas"></span>
+            </p>
+
+            <p class="tentativas">
+                Erros: <span id="erros">0</span> / 6
+            </p>
+
+            <p class="tema" id="dica"></p>
+
+        </div>
+
+    </main>
+
+    <script>
+
+        /* =========================
+           PALAVRAS DO JOGO
+        ========================== */
+        const palavras = [
+            {
+                palavra: 'PROCESSADOR',
+                dica: 'Executa instruções e cálculos.'
+            },
+            {
+                palavra: 'MEMORIA',
+                dica: 'Armazena dados temporariamente.'
+            },
+            {
+                palavra: 'ALGORITMO',
+                dica: 'Sequência lógica de passos.'
+            },
+            {
+                palavra: 'SOFTWARE',
+                dica: 'Parte lógica do computador.'
+            },
+            {
+                palavra: 'HARDWARE',
+                dica: 'Parte física do computador.'
+            },
+            {
+                palavra: 'BARRAMENTO',
+                dica: 'Transporta dados entre componentes.'
+            },
+            {
+                palavra: 'CPU',
+                dica: 'Unidade central de processamento.'
+            }
+        ];
+
+        /* =========================
+           SORTEIO
+        ========================== */
+        const sorteio = palavras[
+            Math.floor(Math.random() * palavras.length)
+        ];
+
+        const palavra = sorteio.palavra;
+
+        let letrasCorretas = [];
+        let letrasUsadas = [];
+        let erros = 0;
+
+        /* =========================
+           ELEMENTOS
+        ========================== */
+        const palavraElemento = document.getElementById('palavra');
+        const usadasElemento = document.getElementById('usadas');
+        const errosElemento = document.getElementById('erros');
+        const forcaElemento = document.getElementById('forca');
+        const dicaElemento = document.getElementById('dica');
+
+        dicaElemento.textContent = '💡 Dica: ' + sorteio.dica;
+
+        /* =========================
+           MOSTRAR PALAVRA
+        ========================== */
+        function mostrarPalavra(){
+
+            palavraElemento.innerHTML = '';
+
+            for(let letra of palavra){
+
+                const div = document.createElement('div');
+
+                div.classList.add('letra');
+
+                if(letrasCorretas.includes(letra)){
+                    div.textContent = letra;
+                }else{
+                    div.textContent = '';
+                }
+
+                palavraElemento.appendChild(div);
+            }
+
+        }
+
+        mostrarPalavra();
+
+        /* =========================
+           VERIFICAR LETRA
+        ========================== */
+        function verificarLetra(){
+
+            const entrada = document
+                .getElementById('entrada');
+
+            const letra = entrada.value
+                .toUpperCase()
+                .trim();
+
+            entrada.value = '';
+
+            // Validação
+            if(letra === ''){
+                return;
+            }
+
+            if(letrasUsadas.includes(letra)){
+                alert('Letra já utilizada.');
+                return;
+            }
+
+            letrasUsadas.push(letra);
+
+            usadasElemento.textContent =
+                letrasUsadas.join(' - ');
+
+            /* =========================
+               ACERTO
+            ========================== */
+            if(palavra.includes(letra)){
+
+                letrasCorretas.push(letra);
+
+                mostrarPalavra();
+
+                verificarVitoria();
+
+            }else{
+
+                /* =========================
+                   ERRO
+                ========================== */
+                erros++;
+
+                errosElemento.textContent = erros;
+
+                atualizarForca();
+
+                if(erros >= 6){
+
+                    setTimeout(() => {
+
+                        alert(
+                            '💀 Você perdeu. Palavra: ' + palavra
+                        );
+
+                        location.reload();
+
+                    }, 200);
+
+                }
+
+            }
+
+        }
+
+        /* =========================
+           FORCA VISUAL
+        ========================== */
+        function atualizarForca(){
+
+            const estados = [
+                '😀',
+                '😐',
+                '😟',
+                '😢',
+                '😫',
+                '😵',
+                '💀'
+            ];
+
+            forcaElemento.textContent = estados[erros];
+
+        }
+
+        /* =========================
+           VITÓRIA
+        ========================== */
+        function verificarVitoria(){
+
+            let venceu = true;
+
+            for(let letra of palavra){
+
+                if(!letrasCorretas.includes(letra)){
+                    venceu = false;
+                }
+
+            }
+
+            if(venceu){
+
+                setTimeout(() => {
+
+                    alert('🏆 Você venceu!');
+
+                    location.reload();
+
+                }, 200);
+
+            }
+
+        }
+
+        /* =========================
+           ENTER DO TECLADO
+        ========================== */
+        document
+            .getElementById('entrada')
+            .addEventListener('keypress', function(event){
+
+                if(event.key === 'Enter'){
+                    verificarLetra();
+                }
+
+            });
+
+    </script>
+
+</body>
+</html>
